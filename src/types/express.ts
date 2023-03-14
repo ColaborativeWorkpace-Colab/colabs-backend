@@ -1,4 +1,4 @@
-import { Request as Req, Response as Res, NextFunction as Next } from "express";
+import { Request as Req, Response as Res, NextFunction as Next } from 'express';
 
 /**
  * Custom User interface used in combination with Express Request / Response types

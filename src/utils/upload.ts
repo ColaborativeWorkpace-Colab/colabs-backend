@@ -1,23 +1,16 @@
-import multer from "multer";
-import path from "path";
-import fs from "fs";
-import {
-  UploadApiErrorResponse,
-  UploadApiResponse,
-  v2 as cloudinary,
-} from "cloudinary";
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { UploadApiErrorResponse, UploadApiResponse, v2 as cloudinary } from 'cloudinary';
 
 const storage = multer.diskStorage({
   destination(_req, _file, cb) {
-    const uploadPath = "uploads/";
+    const uploadPath = 'uploads/';
     !fs.existsSync(uploadPath) && fs.mkdirSync(uploadPath);
     cb(null, uploadPath);
   },
   filename(_req, file, cb) {
-    cb(
-      null,
-      `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`
-    );
+    cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
   },
 });
 
@@ -26,10 +19,7 @@ const storage = multer.diskStorage({
  * @param file
  * @param cb
  */
-function checkFileType(
-  file: Express.Multer.File,
-  cb: multer.FileFilterCallback
-) {
+function checkFileType(file: Express.Multer.File, cb: multer.FileFilterCallback) {
   const filetypes = /jpg|jpeg|png/;
   const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = filetypes.test(file.mimetype);
@@ -37,13 +27,13 @@ function checkFileType(
   if (extname && mimetype) {
     return cb(null, true);
   } else {
-    cb(Error("Images only!"));
+    cb(Error('Images only!'));
   }
 }
 
 const uploadMulter = multer({
   storage,
-  fileFilter: function (_req, file, cb) {
+  fileFilter(_req, file, cb) {
     checkFileType(file, cb);
   },
 });
@@ -54,9 +44,9 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const uploadCloudinary = async (path: string, folder: string) => {
+const uploadCloudinary = async (p: string, folder: string) => {
   return new Promise<UploadApiResponse | UploadApiErrorResponse>((resolve) => {
-    resolve(cloudinary.uploader.upload(path, { folder: folder }));
+    resolve(cloudinary.uploader.upload(p, { folder }));
   });
 };
 export { uploadMulter, uploadCloudinary };

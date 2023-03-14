@@ -1,5 +1,6 @@
-import { nodeEnv } from "../config";
-import { NextFunction, Request, Response } from "express";
+import { nodeEnv } from '../config';
+import { NextFunction, Request, Response } from 'express';
+import { validationResult } from 'express-validator';
 
 const notFound = (req: Request, res: Response, next: NextFunction) => {
   const error = new Error(`Not found - ${req.originalUrl}`);
@@ -7,18 +8,25 @@ const notFound = (req: Request, res: Response, next: NextFunction) => {
   next(error);
 };
 
-const errorHandler = (
-  err: Error,
-  _req: Request,
-  res: Response,
-  _next: NextFunction
-) => {
+const errorHandler = (err: Error, _req: Request, res: Response, _next: NextFunction) => {
   const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
   res.status(statusCode);
   res.json({
     message: err.message,
-    stack: nodeEnv === "production" ? null : err.stack,
+    stack: nodeEnv === 'production' ? null : err.stack,
   });
 };
 
-export { notFound, errorHandler };
+const parseValidationError = (req: Request, res: Response, next: NextFunction) => {
+  const validationErrors = validationResult(req);
+
+  if (validationErrors.isEmpty()) {
+    return next();
+  }
+
+  res.send({
+    errors: validationErrors.array(),
+  });
+};
+
+export { notFound, errorHandler, parseValidationError };

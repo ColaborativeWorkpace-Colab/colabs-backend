@@ -1,4 +1,6 @@
-import express from "express";
+import express from 'express';
+import { parseValidationError } from '../middleware/errorMiddleware';
+import userValidators from '../validators/userValidators';
 import {
   authUser,
   deleteUser,
@@ -8,19 +10,19 @@ import {
   registerUser,
   updateUser,
   updateUserProfile,
-} from "../controllers/user";
-import { admin, protect } from "../middleware/authMiddleware";
+} from '../controllers/user';
+import { admin, protect } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
-router.route("/").post(registerUser).get(protect, admin, getUsers);
-router.route("/login").post(authUser);
+router.route('/').post(userValidators.registerUser, parseValidationError, registerUser).get(protect, admin, getUsers);
+router.route('/login').post(userValidators.loginUser, parseValidationError, authUser);
 router
-  .route("/profile")
+  .route('/profile')
   .get(protect, getUserProfile)
-  .put(protect, updateUserProfile);
+  .put(protect, userValidators.updateUser, parseValidationError, updateUserProfile);
 router
-  .route("/:id")
+  .route('/:id')
   .delete(protect, admin, deleteUser)
   .get(protect, admin, getUserById)
   .put(protect, admin, updateUser);

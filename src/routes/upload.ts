@@ -1,17 +1,16 @@
-import { Request, Response } from "../types";
-import express from "express";
-import path from "path";
-import fs from "fs";
-import asyncHandler from "express-async-handler";
-import { uploadCloudinary, uploadMulter } from "../utils";
+import { Request, Response } from '../types';
+import express from 'express';
+import path from 'path';
+import fs from 'fs';
+import asyncHandler from 'express-async-handler';
+import { uploadCloudinary, uploadMulter } from '../utils';
 const router = express.Router();
 
 const uploadController = asyncHandler(async (req: Request, res: Response) => {
-  const uploader = async (path: string) =>
-    await uploadCloudinary(path, "Images");
+  const uploader = async (p: string) => await uploadCloudinary(p, 'Images');
 
   const { file } = req;
-  const localPath = path.join(path.resolve(), "uploads");
+  const localPath = path.join(path.resolve(), 'uploads');
   const remotePath = await uploader(`${localPath}/${file?.filename}`);
   const imgUrl = remotePath.secure_url;
   fs.unlinkSync(`${localPath}/${file?.filename}`);
@@ -19,6 +18,6 @@ const uploadController = asyncHandler(async (req: Request, res: Response) => {
   res.send(imgUrl);
 });
 
-router.post("/", uploadMulter.single("image"), uploadController);
+router.post('/', uploadMulter.single('image'), uploadController);
 
 export default router;

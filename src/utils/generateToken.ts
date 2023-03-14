@@ -1,5 +1,5 @@
-import { jwtSecrete } from "../config";
-import jwt from "jsonwebtoken";
+import { jwtSecrete } from '../config';
+import jwt from 'jsonwebtoken';
 
 /**
  * Generate a json web token for a user
@@ -7,7 +7,7 @@ import jwt from "jsonwebtoken";
  */
 const generateToken = (id: string) => {
   return jwt.sign({ id }, jwtSecrete, {
-    expiresIn: "30d",
+    expiresIn: '30d',
   });
 };
 

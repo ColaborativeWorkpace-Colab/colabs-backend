@@ -1,3 +1,3 @@
-import { uploadMulter, uploadCloudinary } from "./upload";
+import { uploadMulter, uploadCloudinary } from './upload';
 
 export { uploadMulter, uploadCloudinary };

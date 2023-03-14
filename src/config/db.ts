@@ -1,5 +1,5 @@
-import mongoose, { ConnectOptions } from "mongoose";
-import { mongoUrl } from "./index";
+import mongoose, { ConnectOptions } from 'mongoose';
+import { mongoUrl } from './index';
 
 const connectDB = async () => {
   try {
