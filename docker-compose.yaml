@@ -1,0 +1,11 @@
+version: '3'
+services:
+  colabs-api:
+    container_name: colabs-api-container
+    image: colabs-api:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    env_file: .env
+    network_mode: host
