@@ -8,5 +8,4 @@ services:
       dockerfile: Dockerfile
     restart: always
     env_file: .env
-    # change me later
     network_mode: host
