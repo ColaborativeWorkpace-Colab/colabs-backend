@@ -3,9 +3,29 @@ services:
   colabs-api:
     container_name: colabs-api-container
     image: colabs-api:latest
-    build:
-      context: .
-      dockerfile: Dockerfile
-    restart: always
+    restart: unless-stopped
     env_file: .env
-    network_mode: host
+    depends_on:
+      - mongo
+    ports:
+      - '5000:5000'
+    networks:
+      - mern-app
+
+  mongo:
+    image: mongo:latest
+    command: mongod --quiet --logpath /dev/null
+    ports:
+      - '27017:27017'
+    networks:
+      - mern-app
+    volumes:
+      - mongo-data:/data/db
+
+networks:
+  mern-app:
+    driver: bridge
+
+volumes:
+  mongo-data:
+    driver: local
