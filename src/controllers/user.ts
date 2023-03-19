@@ -1,7 +1,8 @@
-import { Request, Response } from '../types/express';
+import { NextFunction, Request, Response } from '../types/express';
 import asyncHandler from 'express-async-handler';
 import { User } from '../models/';
 import generateToken from '../utils/generateToken';
+import passport from 'passport';
 
 /**
  * Authenticate user and get token
@@ -177,4 +178,54 @@ const updateUser = asyncHandler(async (req: Request, res: Response) => {
   }
 });
 
-export { authUser, getUserProfile, registerUser, updateUserProfile, getUsers, deleteUser, getUserById, updateUser };
+/**
+ * Authenticate user with Google
+ * @route GET /api/users/google
+ * @access Public
+ */
+const authWithGoogle = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  return passport.authenticate('google', (error: any, user: any, _message: string) => {
+    if (error || !user) {
+      console.log('error', error);
+      next(error);
+    }
+    req.user = user;
+    next();
+  })(req, res, next);
+});
+
+/**
+ * Authenticate user with Google callback
+ * @route GET /api/users/google/callback
+ * @access Public
+ */
+const authWithGoogleCallback = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  return passport.authenticate('google', {
+    session: false,
+    failureRedirect: '/login',
+  })(req, res, next);
+});
+
+/**
+ * Redirect user with access-toke
+ * @route GET /api/users/google/callback
+ * @access Public
+ */
+const authWithGoogleRedirect = asyncHandler(async (req: Request, res: Response) => {
+  res.cookie('access-token', req.user?.token);
+  res.redirect('/');
+});
+
+export {
+  authUser,
+  getUserProfile,
+  registerUser,
+  updateUserProfile,
+  getUsers,
+  deleteUser,
+  getUserById,
+  updateUser,
+  authWithGoogle,
+  authWithGoogleCallback,
+  authWithGoogleRedirect,
+};
