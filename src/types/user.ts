@@ -1,17 +1,26 @@
 import { Model, Document } from 'mongoose';
+import { Profile } from 'passport-google-oauth20';
 
 /**
  * Represents a user
  */
-export interface User {
+export interface IUser {
   name: string;
   email: string;
   password: string;
   isAdmin?: boolean;
 }
 
-export interface UserDocument extends User, Document {
-  matchPassword: (password: string) => Promise<Boolean>;
+export interface ICleanUser extends IUser {
+  id: string;
 }
 
-export interface UserModel extends Model<UserDocument> {}
+export interface IUserDocument extends IUser, Document {
+  matchPassword: (password: string) => Promise<Boolean>;
+  cleanUser: () => Promise<ICleanUser>;
+}
+
+export interface IUserModel extends Model<IUserDocument> {
+  authUser: (password: string, email: string) => Promise<IUserDocument>;
+  createWithGoogle: (profile: Profile) => Promise<IUserDocument>;
+}

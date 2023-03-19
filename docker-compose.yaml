@@ -2,6 +2,9 @@ version: '3'
 services:
   colabs-api:
     container_name: colabs-api-container
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: colabs-api:latest
     restart: unless-stopped
     env_file: .env
