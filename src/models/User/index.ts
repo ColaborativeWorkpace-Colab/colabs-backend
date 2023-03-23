@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import mongoose, { Schema } from 'mongoose';
-import { IUserDocument, IUserModel } from 'src/types';
+import { IUserDocument, IUserModel, IRepository } from 'src/types';
 import { modelMethods, staticMethods } from './methods';
 
 const userSchema: Schema<IUserDocument, IUserModel> = new mongoose.Schema(
@@ -22,6 +22,13 @@ const userSchema: Schema<IUserDocument, IUserModel> = new mongoose.Schema(
       type: Boolean,
       required: true,
       default: false,
+    },
+    workspaces: {
+      type: String,
+      default: '',
+      projects: {
+        type: Array<IRepository>,
+      },
     },
   },
   {

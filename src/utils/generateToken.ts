@@ -1,4 +1,4 @@
-import { jwtSecrete } from '../config';
+import { jwtSecret } from '../config';
 import jwt from 'jsonwebtoken';
 
 /**
@@ -6,7 +6,7 @@ import jwt from 'jsonwebtoken';
  * @param id The id of the user
  */
 const generateToken = (id: string) => {
-  return jwt.sign({ id }, jwtSecrete, {
+  return jwt.sign({ id }, jwtSecret, {
     expiresIn: '30d',
   });
 };

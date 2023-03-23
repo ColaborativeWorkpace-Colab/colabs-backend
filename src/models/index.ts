@@ -1,3 +1,4 @@
 import User from './User';
+import Repository from './Repository';
 
-export { User };
+export { User, Repository };

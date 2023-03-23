@@ -1,5 +1,6 @@
 import { Model, Document } from 'mongoose';
 import { Profile } from 'passport-google-oauth20';
+import { IRepository } from './repository';
 
 /**
  * Represents a user
@@ -9,6 +10,7 @@ export interface IUser {
   email: string;
   password: string;
   isAdmin?: boolean;
+  workspaces: { workspaces: string; projects: { projects: IRepository[] } };
 }
 
 export interface ICleanUser extends IUser {
