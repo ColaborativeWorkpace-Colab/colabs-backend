@@ -3,6 +3,7 @@ import { mongoUrl } from './index';
 
 const connectDB = async () => {
   try {
+    mongoose.set('strictQuery', false);
     const conn = await mongoose.connect(mongoUrl, {
       useUnifiedTopology: true,
       useNewUrlParser: true,

@@ -17,10 +17,10 @@ const envSchema = Joi.object({
 
 const { error, value } = envSchema.validate(process.env);
 
-if (error) throw new Error(`evn variables error ${error.message}`);
+if (error) throw new Error(`env variables error ${error.message}`);
 
 export const port = value.PORT;
-export const jwtSecrete = value.JWT_SECRET_KEY;
+export const jwtSecret = value.JWT_SECRET_KEY;
 export const nodeEnv = value.NODE_ENV;
 export const mongoUrl = nodeEnv === 'development' ? value.MONGO_URL_DEV : value.MONGO_URL_PROD;
 export const googleClientId = value.GOOGLE_CLIENT_ID;

@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from '../types/express';
 import jwt, { Secret } from 'jsonwebtoken';
 import { User } from '../models/';
 import asyncHandler from 'express-async-handler';
-import { jwtSecrete } from '../config';
+import { jwtSecret } from '../config';
 interface Decoded {
   id: string;
   iat: Date;
@@ -15,7 +15,7 @@ interface Decoded {
 const protect = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   let token;
 
-  const secret: Secret = jwtSecrete!;
+  const secret: Secret = jwtSecret!;
 
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
