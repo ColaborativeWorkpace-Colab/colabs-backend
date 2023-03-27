@@ -38,6 +38,10 @@ dotenv.config();
 
 connectDB();
 
+app.get('/', (_req: Request, res: Response) => {
+  res.send('API IS RUNNING...');
+});
+
 app.use('/api/v1/users/', userRoutes);
 app.use('/api/v1/upload', uploadRoutes);
 app.use('/api/v1/workspaces/', workspaceRoutes);
@@ -51,10 +55,6 @@ app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server running in ${nodeEnv} mode on port ${PORT}`);
-});
-
-app.get('/', (_req: Request, res: Response) => {
-  res.send('API IS RUNNING...');
 });
 
 // TODO: Setup route for jobs
