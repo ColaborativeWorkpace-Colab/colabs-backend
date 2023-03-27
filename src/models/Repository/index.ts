@@ -12,7 +12,6 @@ const repositorySchema: Schema<IRepositoryDocument, IRepositoryModel> = new mong
       type: String,
       required: true,
     },
-    // TODO: Check if github gives url to repository created through their API
   },
   {
     timestamps: true, // Automatically create createdAt timestamp
