@@ -10,6 +10,7 @@ import session from 'express-session';
 import userRoutes from './routes/user';
 import uploadRoutes from './routes/upload';
 import workspaceRoutes from './routes/workspace';
+import jobRoutes from './routes/jobs';
 import morgan from 'morgan';
 import { nodeEnv } from './config';
 import passport from 'passport';
@@ -45,6 +46,7 @@ app.get('/', (_req: Request, res: Response) => {
 app.use('/api/v1/users/', userRoutes);
 app.use('/api/v1/upload', uploadRoutes);
 app.use('/api/v1/workspaces/', workspaceRoutes);
+app.use('/api/v1/jobs', jobRoutes);
 
 // Make uploads folder static
 app.use('/uploads', express.static(path.join(path.resolve(), 'uploads')));
@@ -57,14 +59,12 @@ app.listen(PORT, () => {
   console.log(`Server running in ${nodeEnv} mode on port ${PORT}`);
 });
 
-// TODO: Setup route for jobs
-// TODO: Validate user and employer for legitimacy
-// TODO: Setup route for profiles
+// TODO: Validate user and employer for legitimacy (profile)
+// TODO: Setup route for profiles (provide overview of all the jobs the user is currently working on (as lead/subordinate))
 // TODO: Get social media content from database
 // TODO: Create a communication channel between users for messaging including text, image, GIF
 // TODO: Create a progress system for skill use and upgrading upon task/job completion
 // TODO: Implement badges and skill listings
-// TODO: Get SVT Quizzes per skill
+// TODO: Get SVT Quizzes per skill (profile)
 
-// NOTE: What does a job contain?
-// NOTE: What are the components that are inside the workspace page (eg. list of projects)
+// NOTE: What are the components that are inside the workspace page (eg. list of projects, team members)

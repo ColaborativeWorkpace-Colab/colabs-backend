@@ -36,7 +36,6 @@ const createProject = asyncHandler(async (req: Request, res: Response) => {
 
   if (user) {
     errorMessage = 'Project Creation Failed';
-    // TODO: replace variables with actual values
     const repoResponse = await client.request(`POST /orgs/${process.env.GITHUB_ORGANIZATION}/repos`, {
       name: projectName,
       homepage: 'https://github.com',
