@@ -1,8 +1,9 @@
 import { NextFunction, Request, Response } from '../types/express';
 import asyncHandler from 'express-async-handler';
-import { User } from '../models/';
+import { User, Freelancer } from '../models/';
 import generateToken from '../utils/generateToken';
 import passport from 'passport';
+import { IUser } from 'src/types';
 
 /**
  * Authenticate user and get token
@@ -22,32 +23,27 @@ const authUser = asyncHandler(async (req: Request, res: Response) => {
  * @access Public
  */
 const registerUser = asyncHandler(async (req: Request, res: Response) => {
-  const { name, email, password } = req.body as {
-    name: string;
-    email: string;
-    password: string;
-  };
+  const { firstName, lastName, email, password }: IUser = req.body;
 
-  const userExists = await User.findOne({ email });
+  const userExists = await Freelancer.findOne({ email });
 
   if (userExists) {
     res.status(400);
     throw new Error('User already exists');
   }
 
-  const user = await User.create({
-    name,
+  const user = await Freelancer.create({
+    firstName,
+    lastName,
     email,
     password,
   });
 
   if (user) {
+    const cleaUser = await user.cleanUser();
     res.status(201).json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      isAdmin: user.isAdmin,
-      token: generateToken(user._id),
+      ...cleaUser,
+      token: generateToken(user.id),
     });
   } else {
     res.status(400);
@@ -66,7 +62,7 @@ const getUserProfile = asyncHandler(async (req: Request, res: Response) => {
   if (user) {
     res.json({
       _id: user._id,
-      name: user.name,
+      firstName: user.firstName,
       email: user.email,
       isAdmin: user.isAdmin,
     });
@@ -85,7 +81,7 @@ const updateUserProfile = asyncHandler(async (req: Request, res: Response) => {
   const user = await User.findById(req.user?._id);
 
   if (user) {
-    user.name = req.body.name || user.name;
+    user.firstName = req.body.name || user.firstName;
     user.email = req.body.email || user.email;
 
     if (req.body.password) {
@@ -96,7 +92,8 @@ const updateUserProfile = asyncHandler(async (req: Request, res: Response) => {
 
     res.json({
       _id: updatedUser._id,
-      name: updatedUser.name,
+      firsName: updatedUser.firstName,
+      lastName: updatedUser.lastName,
       email: updatedUser.email,
       isAdmin: updatedUser.isAdmin,
       token: generateToken(updatedUser._id),
@@ -162,13 +159,13 @@ const updateUser = asyncHandler(async (req: Request, res: Response) => {
   const user = await User.findById(id);
 
   if (user) {
-    user.name = req.body.name || user.name;
+    user.firstName = req.body.name || user.firstName;
     user.isAdmin = req.body.isAdmin;
     const updatedUser = await user.save();
 
     res.json({
       _id: updatedUser._id,
-      name: updatedUser.name,
+      fristName: updatedUser.firstName,
       email: updatedUser.email,
       isAdmin: updatedUser.isAdmin,
     });

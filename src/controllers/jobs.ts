@@ -1,6 +1,6 @@
 import { Request, Response } from '../types/express';
 import asyncHandler from 'express-async-handler';
-import { Job, User } from '../models';
+import { Job, Freelancer, Employeer } from '../models';
 // TODO: When manipulating a job info, only the owner has access
 // Note: A job has four statuses: Pending, Completed, Active, Ready, Available
 /**
@@ -11,7 +11,7 @@ import { Job, User } from '../models';
 const getJobs = asyncHandler(async (req: Request, res: Response) => {
   const { userId } = req.query as { userId: string };
   const jobs = await Job.find({ status: 'Available' });
-  const user = await User.findById(userId);
+  const user = await Freelancer.findById(userId);
 
   if (user) {
     res.json({
@@ -37,7 +37,7 @@ const postJob = asyncHandler(async (req: Request, res: Response) => {
     requirements: string;
     earnings: number;
   };
-  const user = await User.findById(recruiterId);
+  const user = await Employeer.findById(recruiterId);
   let errorMessage = 'User not found';
   // TODO: Handle recruiter verification
   if (user) {
