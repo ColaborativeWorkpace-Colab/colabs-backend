@@ -1,8 +1,11 @@
 import { Request, Response } from '../types/express';
 import asyncHandler from 'express-async-handler';
-import { Job, User } from '../models';
-// TODO: When manipulating a job info, only the owner has access
-// Note: A job has four statuses: Pending, Completed, Active, Ready, Available
+import { Job, User, Notification } from '../models';
+import { Octokit } from 'octokit';
+import { getFilesfromRepo } from '../utils/download';
+// TODO: Record Notifications for necessary endpoints
+// NOTE: When manipulating a job info, only the owner has access
+// NOTE: A job has five statuses: Pending, Completed, Active, Ready, Available
 /**
  * Get Jobs
  * @route GET /api/v1/jobs
@@ -39,24 +42,29 @@ const postJob = asyncHandler(async (req: Request, res: Response) => {
   };
   const user = await User.findById(recruiterId);
   let errorMessage = 'User not found';
-  // TODO: Handle recruiter verification
   if (user) {
-    errorMessage = 'Job Posting Failed';
-    const job = await Job.create({
-      title,
-      description,
-      earnings,
-      requirements: requirements.split(','),
-      owner: recruiterId,
-    });
+    errorMessage =
+      'Your account does not yet have access to this feature. Complete your profile verification to proceed.';
 
-    if (job) {
-      res.json({
-        message: `The ${title} job is successfully posted.`,
+    if (user.isRecruiterVerified) {
+      errorMessage = 'Job Posting Failed';
+      const job = await Job.create({
+        title,
+        description,
+        earnings,
+        requirements: requirements.split(','),
+        owner: recruiterId,
       });
-      return;
+
+      if (job) {
+        res.json({
+          message: `The ${title} job is successfully posted.`,
+        });
+        return;
+      }
     }
   }
+
   res.status(404);
   throw new Error(errorMessage);
 });
@@ -95,6 +103,7 @@ const completeJob = asyncHandler(async (req: Request, res: Response) => {
   // TODO: Send a notification for both worker and recruiter (job status changes to 'Ready')
   // TODO: Only provide the job file assets to the recruiter when payment is completed
   // TODO: Add payment
+  // TODO: Implement upgrade points and update user profile
   const job = await Job.findByIdAndUpdate(jobId, { status: 'Completed' });
   if (job) {
     res.json({
@@ -140,6 +149,7 @@ const addTeamMembers = asyncHandler(async (req: Request, res: Response) => {
   const teamMembers: string[] = team.split(',');
   const job = await Job.findByIdAndUpdate(jobId, { workers: teamMembers });
   // TODO: Get Previous members from client
+  // TODO: Notify previous members
   if (job) {
     res.json({
       message: `You have added new members to the job.`,
@@ -156,18 +166,64 @@ const addTeamMembers = asyncHandler(async (req: Request, res: Response) => {
  * @access Private
  */
 const jobReady = asyncHandler(async (req: Request, res: Response) => {
-  const { jobId } = req.params as { jobId: string };
+  const { jobId } = req.params as { jobId: string; workerId: string; recruiterId: string };
   const job = await Job.findByIdAndUpdate(jobId, { status: 'Ready' });
+  let errorMessage = 'Job not found';
 
   if (job) {
     // TODO: Notify owner of the job state change
-    res.json({
-      message: `The job is ready to be viewed by the owner.`,
+    const notification = await Notification.create({
+      title: 'Files Ready',
+      message: `Your workers are ready with the files on the ${job.title} job.`,
+      userId: job.owner,
     });
+    errorMessage = 'Notification Request Failed';
+
+    if (notification) {
+      res.json({
+        message: `The job is ready to be viewed by the owner.`,
+      });
+    }
   } else {
     res.status(404);
-    throw new Error('Job not found');
+    throw new Error(errorMessage);
   }
 });
 
-export { getJobs, postJob, deleteJob, completeJob, applyJob, addTeamMembers, jobReady };
+/**
+ * Download and provide the result files the worker has been tasked to do.
+ * @route GET /api/v1/jobs
+ * @access Private
+ */
+const downloadJobResultPackage = asyncHandler(async (req: Request, res: Response) => {
+  const { projectName, files } = req.body as { projectName: string; files: string };
+  const client = new Octokit({
+    auth: process.env.GITHUB_PERSONAL_ACCESS_TOKEN,
+  });
+
+  const projectRootURL = `GET /repos/${process.env.GITHUB_ORGANIZATION}/${projectName}/contents`;
+  const repoResponse = await client.request(projectRootURL);
+  const selectedFiles: string[] = files.split(',');
+
+  if (repoResponse) {
+    // TODO: Package all files into a compressed zip file
+    const downloadUrls: any[] = [];
+    repoResponse.data.forEach((value: any) => {
+      if (selectedFiles.includes(value.name)) {
+        downloadUrls.push({ name: value.name, download_url: value.download_url });
+      }
+    });
+
+    // TODO: Test
+    const { downloadFileName, data } = await getFilesfromRepo(projectName, downloadUrls);
+    res.set('Content-Type', 'application/octet-stream');
+    res.set('Content-Disposition', `attachment; filename=${downloadFileName}`);
+    res.set('Content-Length', data.length);
+    res.send(data);
+  } else {
+    res.status(404);
+    throw new Error('File Package not found');
+  }
+});
+
+export { getJobs, postJob, deleteJob, completeJob, applyJob, addTeamMembers, jobReady, downloadJobResultPackage };

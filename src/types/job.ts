@@ -1,7 +1,7 @@
 import { Model, Document } from 'mongoose';
 
 /**
- * Represents a repository
+ * Represents a Job
  */
 export interface IJob {
   title: string;
@@ -17,8 +17,6 @@ export interface ICleanJob extends IJob {
   id: string;
 }
 
-export interface IJobDocument extends IJob, Document {
-  cleanRepository: () => Promise<ICleanJob>;
-}
+export interface IJobDocument extends IJob, Document {}
 
 export interface IJobModel extends Model<IJobDocument> {}
