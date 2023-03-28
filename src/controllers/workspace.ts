@@ -70,7 +70,7 @@ const deleteProject = asyncHandler(async (req: Request, res: Response) => {
 
   const repoResponse = await client.request(`DELETE /repos/${process.env.GITHUB_ORGANIZATION}/${projectName}`);
   let errorMessage = 'Failed Request';
-
+  // TODO: Notify other users if there are any
   if (repoResponse.status === 204) {
     errorMessage = 'Project not found';
     const project = await Repository.findByIdAndDelete(projectId);
@@ -87,4 +87,6 @@ const deleteProject = asyncHandler(async (req: Request, res: Response) => {
   throw new Error(errorMessage);
 });
 
+// TODO: Implement an endpoint for deleting, uploading a file to a project
+// TODO: When adding files to projects, notify concerning users of the changes
 export { getProjects, createProject, deleteProject };

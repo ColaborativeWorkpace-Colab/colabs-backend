@@ -7,7 +7,9 @@ export interface IUser {
   lastName: string;
   email: string;
   password: string;
-  isAdmin?: boolean;
+  isAdmin: boolean;
+  isWorkVerified: boolean;
+  isRecruiterVerified: boolean;
   skills: String[];
   googleId: String;
   emailVerified: Boolean;
