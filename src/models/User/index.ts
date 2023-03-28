@@ -23,6 +23,16 @@ const userSchema: Schema<IUserDocument, IUserModel> = new mongoose.Schema(
       required: true,
       default: false,
     },
+    isWorkVerified: {
+      type: Boolean,
+      required: true,
+      default: false,
+    },
+    isRecruiterVerified: {
+      type: Boolean,
+      required: true,
+      default: false,
+    },
     skills: {
       type: [String],
     },

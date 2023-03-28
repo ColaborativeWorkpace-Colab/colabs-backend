@@ -1,5 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
-import { IJobDocument, IJobModel } from 'src/types';
+import { IJobDocument, IJobModel } from '../../types';
 import { modelMethods, staticMethods } from './methods';
 
 const jobSchema: Schema<IJobDocument, IJobModel> = new mongoose.Schema(
