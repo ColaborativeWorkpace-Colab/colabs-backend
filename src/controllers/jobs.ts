@@ -1,6 +1,8 @@
 import { Request, Response } from '../types/express';
 import asyncHandler from 'express-async-handler';
-import { Job, User, Notification } from '../models';
+import { Job, Freelancer, Notification, Employeer } from '../models';
+// TODO: When manipulating a job info, only the owner has access
+// Note: A job has four statuses: Pending, Completed, Active, Ready, Available
 import { Octokit } from 'octokit';
 import { getFilesfromRepo } from '../utils/download';
 // TODO: Record Notifications for necessary endpoints
@@ -14,7 +16,7 @@ import { getFilesfromRepo } from '../utils/download';
 const getJobs = asyncHandler(async (req: Request, res: Response) => {
   const { userId } = req.query as { userId: string };
   const jobs = await Job.find({ status: 'Available' });
-  const user = await User.findById(userId);
+  const user = await Freelancer.findById(userId);
 
   if (user) {
     res.json({
@@ -40,7 +42,7 @@ const postJob = asyncHandler(async (req: Request, res: Response) => {
     requirements: string;
     earnings: number;
   };
-  const user = await User.findById(recruiterId);
+  const user = await Employeer.findById(recruiterId);
   let errorMessage = 'User not found';
   if (user) {
     errorMessage =
