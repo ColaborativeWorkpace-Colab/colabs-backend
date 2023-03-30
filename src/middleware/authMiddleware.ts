@@ -24,7 +24,7 @@ const protect = asyncHandler(async (req: Request, res: Response, next: NextFunct
       const decoded = jwt.verify(token, secret) as unknown as Decoded;
       const _user = (await User.findById(decoded.id).select('-password')) as {
         _id: string;
-        name: string;
+        firstName: string;
         email: string;
         isAdmin?: boolean | undefined;
       };

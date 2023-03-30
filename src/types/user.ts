@@ -1,9 +1,7 @@
 import { Model, Document } from 'mongoose';
 import { Profile } from 'passport-google-oauth20';
 
-/**
- * Represents a user
- */
+// Types
 export interface IUser {
   firstName: string;
   lastName: string;
@@ -25,6 +23,7 @@ export interface IFreelance extends IUser {
 }
 
 export interface IEmployer extends IUser {
+
   isVerified: boolean;
   jobs: string[];
   reviews: string[];
@@ -46,6 +45,7 @@ export interface IUserDocument extends IUser, IFreelance, IEmployer, Document {
   cleanUser: () => Promise<ICleanUser>;
 }
 
+// Models
 export interface IUserModel extends Model<IUserDocument> {
   authUser: (password: string, email: string) => Promise<IUserDocument>;
   createWithGoogle: (profile: Profile) => Promise<IUserDocument>;

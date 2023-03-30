@@ -1,6 +1,6 @@
 import { Request, Response } from '../types/express';
 import asyncHandler from 'express-async-handler';
-import { Job, Freelancer, Notification, Employer } from '../models';
+import { Job, Freelancer, Notification, Employeer } from '../models';
 import { Octokit } from 'octokit';
 import { getFilesfromRepo } from '../utils/download';
 
@@ -41,7 +41,8 @@ const postJob = asyncHandler(async (req: Request, res: Response) => {
     requirements: string;
     earnings: number;
   };
-  const employer = await Employer.findById(recruiterId);
+  
+  const employer = await Employer.findById(recruiterId)
   let errorMessage = 'User not found';
   if (employer) {
     errorMessage =
