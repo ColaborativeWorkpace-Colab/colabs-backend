@@ -22,7 +22,8 @@ export interface IFreelance extends IUser {
   hourlyRate: Number;
 }
 
-export interface IEmployeer extends IUser {
+export interface IEmployer extends IUser {
+
   isVerified: boolean;
   jobs: string[];
   reviews: string[];
@@ -39,7 +40,7 @@ export interface ICleanUser extends IUser {
 }
 
 // Documents
-export interface IUserDocument extends IUser, IFreelance, IEmployeer, Document {
+export interface IUserDocument extends IUser, IFreelance, IEmployer, Document {
   matchPassword: (password: string) => Promise<Boolean>;
   cleanUser: () => Promise<ICleanUser>;
 }

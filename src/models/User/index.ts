@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
 import { IUserDocument, IUserModel } from 'src/types';
 import { modelMethods, staticMethods } from './methods';
-import { UserSchema, FreelancerSchema, EmployeerSchema } from './Schemas';
+import { UserSchema, FreelancerSchema, EmployerSchema } from './Schemas';
 
 UserSchema.method(modelMethods);
 UserSchema.static(staticMethods);
@@ -19,6 +19,6 @@ UserSchema.pre('save', async function (this: IUserDocument, next) {
 
 const User = mongoose.model<IUserDocument, IUserModel>('User', UserSchema);
 const Freelancer = User.discriminator('Freelancer', FreelancerSchema);
-const Employeer = User.discriminator('Employeer', EmployeerSchema);
+const Employer = User.discriminator('Employer', EmployerSchema);
 
-export { User, Freelancer, Employeer };
+export { User, Freelancer, Employer };
