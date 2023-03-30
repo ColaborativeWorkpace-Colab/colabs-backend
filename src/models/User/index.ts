@@ -1,58 +1,24 @@
 import bcrypt from 'bcryptjs';
-import mongoose, { Schema } from 'mongoose';
+import mongoose from 'mongoose';
 import { IUserDocument, IUserModel } from 'src/types';
 import { modelMethods, staticMethods } from './methods';
+import { UserSchema, FreelancerSchema, EmployerSchema } from './Schemas';
 
-const userSchema: Schema<IUserDocument, IUserModel> = new mongoose.Schema(
-  {
-    name: {
-      type: String,
-      required: true,
-    },
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-    password: {
-      type: String,
-      required: true,
-    },
-    isAdmin: {
-      type: Boolean,
-      required: true,
-      default: false,
-    },
-    isWorkVerified: {
-      type: Boolean,
-      required: true,
-      default: false,
-    },
-    isRecruiterVerified: {
-      type: Boolean,
-      required: true,
-      default: false,
-    },
-    skills: {
-      type: [String],
-    },
-  },
-  {
-    timestamps: true, // Automatically create createdAt timestamp
-  },
-);
-
-userSchema.method(modelMethods);
-userSchema.static(staticMethods);
+UserSchema.method(modelMethods);
+UserSchema.static(staticMethods);
 
 /**
  * Runs before the model saves and hecks to see if password has been
  * modified and hashes the password before saving to database
  */
-userSchema.pre('save', async function (this: IUserDocument, next) {
+UserSchema.pre('save', async function (this: IUserDocument, next) {
   if (!this.isModified('password')) next();
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
 });
 
-export default mongoose.model<IUserDocument, IUserModel>('User', userSchema);
+const User = mongoose.model<IUserDocument, IUserModel>('User', UserSchema);
+const Freelancer = User.discriminator('Freelancer', FreelancerSchema);
+const Employer = User.discriminator('Employer', EmployerSchema);
+
+export { User, Freelancer, Employer };
