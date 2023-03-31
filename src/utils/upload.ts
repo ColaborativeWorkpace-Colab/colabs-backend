@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { UploadApiErrorResponse, UploadApiResponse, v2 as cloudinary } from 'cloudinary';
 
-const storage = multer.diskStorage({
+const imageStorage = multer.diskStorage({
   destination(_req, _file, cb) {
     const uploadPath = 'uploads/';
     !fs.existsSync(uploadPath) && fs.mkdirSync(uploadPath);
@@ -11,6 +11,17 @@ const storage = multer.diskStorage({
   },
   filename(_req, file, cb) {
     cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
+  },
+});
+
+const projectFilesTempStorage = multer.diskStorage({
+  destination(_req, _file, cb) {
+    const uploadPath = 'uploads/temp';
+    !fs.existsSync(uploadPath) && fs.mkdirSync(uploadPath);
+    cb(null, uploadPath);
+  },
+  filename(_req, file, cb) {
+    cb(null, file.originalname);
   },
 });
 
@@ -31,11 +42,15 @@ function checkFileType(file: Express.Multer.File, cb: multer.FileFilterCallback)
   }
 }
 
-const uploadMulter = multer({
-  storage,
+const imageUploadMulter = multer({
+  storage: imageStorage,
   fileFilter(_req, file, cb) {
     checkFileType(file, cb);
   },
+});
+
+const fileUploadMulter = multer({
+  storage: projectFilesTempStorage,
 });
 
 cloudinary.config({
@@ -49,4 +64,4 @@ const uploadCloudinary = async (p: string, folder: string) => {
     resolve(cloudinary.uploader.upload(p, { folder }));
   });
 };
-export { uploadMulter, uploadCloudinary };
+export { imageUploadMulter, fileUploadMulter, uploadCloudinary };
