@@ -30,12 +30,13 @@ const UserSchema: Schema<IUserDocument, IUserModel> = new Schema(
       type: String,
       required: true,
     },
-    isAdmin: {
+    isRegulator: {
       type: Boolean,
       default: false,
     },
-    skills: {
-      type: [String],
+    isAdmin: {
+      type: Boolean,
+      default: false,
     },
     googleId: String,
     emailVerified: Boolean,
@@ -53,6 +54,9 @@ const FreelancerSchema: Schema<IUserDocument, IUserModel> = new Schema(
       type: [String],
     },
     reviews: {
+      type: [String],
+    },
+    skills: {
       type: [String],
     },
     hourlyRate: {

@@ -9,18 +9,17 @@ export interface IUser {
   email: string;
   password: string;
   isAdmin: boolean;
-  isWorkVerified: boolean;
-  isRecruiterVerified: boolean;
-  skills: String[];
-  googleId: String;
-  emailVerified: Boolean;
+  isRegulator: boolean;
+  googleId: string;
+  emailVerified: boolean;
 }
 
 export interface IFreelance extends IUser {
   isVerified: boolean;
   jobs: string[];
   reviews: string[];
-  hourlyRate: Number;
+  skills: string[];
+  hourlyRate: number;
   permissions: Permission;
 }
 
