@@ -1,5 +1,6 @@
 import { Model, Document } from 'mongoose';
 import { Profile } from 'passport-google-oauth20';
+import { Permission } from './permission';
 
 // Types
 export interface IUser {
@@ -20,10 +21,10 @@ export interface IFreelance extends IUser {
   jobs: string[];
   reviews: string[];
   hourlyRate: Number;
+  permissions: Permission;
 }
 
 export interface IEmployer extends IUser {
-
   isVerified: boolean;
   jobs: string[];
   reviews: string[];
