@@ -6,6 +6,7 @@ import {
   deleteProject,
   uploadProjectFiles,
   deleteProjectFiles,
+  givePermissions,
 } from '../controllers/workspace';
 const router = express.Router();
 
@@ -15,5 +16,6 @@ router.route('/projects').post(createProject);
 router.route('/projects/:projectId/delete').delete(deleteProject);
 router.route('/projects/:projectId/uploadFiles').put(fileUploadMulter.any(), uploadProjectFiles);
 router.route('/projects/:projectId/removeFiles').put(deleteProjectFiles);
+router.route('/projects/:projectId/givePermission').put(givePermissions);
 
 export default router;

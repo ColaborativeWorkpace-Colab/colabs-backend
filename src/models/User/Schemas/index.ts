@@ -1,5 +1,5 @@
 import { Schema } from 'mongoose';
-import { IUserDocument, IUserModel, LegalInfo } from 'src/types';
+import { IUserDocument, IUserModel, LegalInfo } from '../../../types';
 
 export const LegalInfoSchema: Schema<LegalInfo> = new Schema({
   name: {
@@ -58,6 +58,23 @@ const FreelancerSchema: Schema<IUserDocument, IUserModel> = new Schema(
     hourlyRate: {
       type: Number,
       defualt: 10,
+    },
+    permissions: {
+      type: Object,
+      default: {
+        adminAccess: {
+          projects: [],
+        },
+        uploadFiles: {
+          projects: [],
+        },
+        deleteFiles: {
+          projects: [],
+        },
+        deleteProject: {
+          projects: [],
+        },
+      },
     },
   },
   { timestamps: true, discriminatorKey: 'role' },
