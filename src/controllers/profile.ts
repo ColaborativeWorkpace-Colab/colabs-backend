@@ -1,6 +1,6 @@
 import { Request, Response } from '../types/express';
 import asyncHandler from 'express-async-handler';
-import { User, SVT, SVTSolution, Notification } from '../models';
+import { User, SVT, SVTSolution, Notification, Freelancer } from '../models';
 
 /**
  * Get Profile
@@ -207,23 +207,29 @@ const scoreSolution = asyncHandler(async (req: Request, res: Response) => {
       const solution = await SVTSolution.findByIdAndUpdate(solutionId, { score });
 
       if (solution) {
-        errorMessage = 'Notification request failed';
-        statusCode = 500;
+        const worker = await Freelancer.findById(solution.userId);
+        errorMessage = 'Worker not found';
+        statusCode = 404;
 
-        const svt = await SVT.findById(solution.skillId);
-        const notification = await Notification.create({
-          title: 'Solution Scored',
-          message: `The ${svt?.skill} SVT you took earlier has been scored.`,
-          userId: solution.userId,
-        });
-        // TODO: Update profile if user has passed the SVT
+        if (worker) {
+          errorMessage = 'Notification request failed';
+          statusCode = 500;
 
-        if (notification) {
-          res.json({
-            message: 'The solution has been scored',
+          await Freelancer.updateOne({ skills: [...worker.skills, solution.skillId] });
+          const svt = await SVT.findById(solution.skillId);
+          const notification = await Notification.create({
+            title: 'Solution Scored',
+            message: `The ${svt?.skill} SVT you took earlier has been scored.`,
+            userId: solution.userId,
           });
 
-          return;
+          if (notification) {
+            res.json({
+              message: 'The solution has been scored',
+            });
+
+            return;
+          }
         }
       }
     }

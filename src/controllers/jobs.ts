@@ -144,7 +144,6 @@ const applyJob = asyncHandler(async (req: Request, res: Response) => {
   const workers = workerIds.split(',');
   const unverifiedWorkers: string[] = [];
   let workerIterator = 0;
-  // TODO: If job has SVT's and user do not have the skills in their profile, first send those
 
   new Promise((resolve, _reject) => {
     workers.forEach((workerId) => {
