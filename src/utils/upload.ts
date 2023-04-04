@@ -16,7 +16,7 @@ const imageStorage = multer.diskStorage({
 
 const projectFilesTempStorage = multer.diskStorage({
   destination(_req, _file, cb) {
-    const uploadPath = 'uploads/temp';
+    const uploadPath = path.join('uploads', 'temp');
     !fs.existsSync(uploadPath) && fs.mkdirSync(uploadPath);
     cb(null, uploadPath);
   },
