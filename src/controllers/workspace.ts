@@ -7,7 +7,7 @@ import { updatePermissions } from '../utils/updatePermissions';
 
 /**
  * Get Projects
- * @route GET /api/v1/workspaces
+ * @route GET /api/v1/workspaces/dashboard
  * @access Private
  */
 const getProjects = asyncHandler(async (req: Request, res: Response) => {
@@ -25,8 +25,59 @@ const getProjects = asyncHandler(async (req: Request, res: Response) => {
 });
 
 /**
+ * Get Project Files
+ * @route GET /api/v1/workspaces/projects/:projectId
+ * @access Private
+ */
+const getProjectFiles = asyncHandler(async (req: Request, res: Response) => {
+  const { projectId } = req.params as { projectId: string };
+  const repository = await Repository.findById(projectId);
+  const client = new Octokit({
+    auth: process.env.GITHUB_PERSONAL_ACCESS_TOKEN,
+  });
+
+  if (repository) {
+    const commits = await client.request(`GET /repos/${process.env.GITHUB_ORGANIZATION}/${repository.name}/commits`);
+
+    res.json({
+      files: repository,
+      commits,
+    });
+  } else {
+    res.status(404);
+    throw new Error('Project not found');
+  }
+});
+
+/**
+ * Get File Versions
+ * @route GET /api/v1/workspaces/projects/:projectId/:fileRef
+ * @access Private
+ */
+const getFileVersions = asyncHandler(async (req: Request, res: Response) => {
+  const { projectId, fileRef } = req.params as { projectId: string; fileRef: string };
+  const repository = await Repository.findById(projectId);
+  const client = new Octokit({
+    auth: process.env.GITHUB_PERSONAL_ACCESS_TOKEN,
+  });
+
+  if (repository) {
+    const files = await client.request(
+      `GET /repos/${process.env.GITHUB_ORGANIZATION}/${repository.name}/commits/${fileRef}`,
+    );
+
+    res.json({
+      files,
+    });
+  } else {
+    res.status(404);
+    throw new Error('Project not found');
+  }
+});
+
+/**
  * Create Project
- * @route GET /api/v1/workspaces
+ * @route POST /api/v1/workspaces/projects
  * @access Private (optional)
  */
 const createProject = asyncHandler(async (req: Request, res: Response) => {
@@ -71,7 +122,7 @@ const createProject = asyncHandler(async (req: Request, res: Response) => {
 
 /**
  * Delete Project
- * @route GET /api/v1/workspaces
+ * @route DELETE /api/v1/workspaces/projects/:projectId/delete
  * @access Private
  */
 const deleteProject = asyncHandler(async (req: Request, res: Response) => {
@@ -113,7 +164,7 @@ const deleteProject = asyncHandler(async (req: Request, res: Response) => {
 
 /**
  * Upload files to project
- * @route GET /api/v1/workspaces
+ * @route PUT /api/v1/workspaces/projects/:projectId/uploadFiles
  * @access Private
  */
 const uploadProjectFiles = asyncHandler(async (req: Request, res: Response) => {
@@ -178,6 +229,8 @@ const uploadProjectFiles = asyncHandler(async (req: Request, res: Response) => {
             if (fileIterator === files.length) resolve(true);
           } else reject('File Upload request failed');
         });
+
+        if (files.length === 0) reject('Files not uploaded');
       })
         .then(async () => {
           const databaseFilesUpadted = await project.updateOne({ files: [...project.files, ...uploadedFiles] });
@@ -193,8 +246,14 @@ const uploadProjectFiles = asyncHandler(async (req: Request, res: Response) => {
           }
         })
         .catch((error) => {
-          res.status(500);
+          res.status(500).json({ error });
           throw new Error(error);
+        })
+        .finally(() => {
+          files.forEach((f) => {
+            const file = JSON.parse(JSON.stringify(f));
+            fs.unlink(file.path);
+          });
         });
     } else {
       res.status(401);
@@ -208,7 +267,7 @@ const uploadProjectFiles = asyncHandler(async (req: Request, res: Response) => {
 
 /**
  * Delete files from project
- * @route GET /api/v1/workspaces
+ * @route PUT /api/v1/workspaces/projects/:projectId/removeFiles
  * @access Private
  */
 const deleteProjectFiles = asyncHandler(async (req: Request, res: Response) => {
@@ -292,7 +351,7 @@ const deleteProjectFiles = asyncHandler(async (req: Request, res: Response) => {
 
 /**
  * Give permissions to other users for a given project
- * @route GET /api/v1/workspaces
+ * @route PUT /api/v1/workspaces/projects/:projectId/givePermission
  * @access Private
  */
 const givePermissions = asyncHandler(async (req: Request, res: Response) => {
@@ -331,4 +390,13 @@ const givePermissions = asyncHandler(async (req: Request, res: Response) => {
   throw new Error(errorMessage);
 });
 
-export { getProjects, createProject, deleteProject, uploadProjectFiles, deleteProjectFiles, givePermissions };
+export {
+  getProjects,
+  createProject,
+  deleteProject,
+  uploadProjectFiles,
+  deleteProjectFiles,
+  givePermissions,
+  getProjectFiles,
+  getFileVersions,
+};
