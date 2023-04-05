@@ -2,12 +2,18 @@ import { Model, Document } from 'mongoose';
 import { Profile } from 'passport-google-oauth20';
 import { Permission } from './permission';
 
+export type Tag = {
+  name: string;
+  score: number;
+};
+
 // Types
 export interface IUser {
   firstName: string;
   lastName: string;
   email: string;
   password: string;
+  tags: [Tag];
   isAdmin: boolean;
   isRegulator: boolean;
   googleId: string;

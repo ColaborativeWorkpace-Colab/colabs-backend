@@ -30,6 +30,9 @@ const UserSchema: Schema<IUserDocument, IUserModel> = new Schema(
       type: String,
       required: true,
     },
+    tags: {
+      type: [Object],
+    },
     isRegulator: {
       type: Boolean,
       default: false,

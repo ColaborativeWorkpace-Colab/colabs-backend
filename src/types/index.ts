@@ -6,3 +6,4 @@ export * from './notification';
 export * from './permission';
 export * from './svt';
 export * from './svtsolution';
+export * from './social';
