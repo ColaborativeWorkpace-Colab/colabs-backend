@@ -62,7 +62,6 @@ const staticMethods = {
           firstName: profile.displayName,
           lastName: profile._json.family_name,
           email: profile._json.email,
-          password: profile.id,
           imageUrl: profile._json.picture,
           googleId: profile._json.sub,
           emailVerified: true,
@@ -86,7 +85,6 @@ const staticMethods = {
       } else {
         const user = await this.create({
           email,
-          password: profile.id,
           firstName: profile.displayName,
           lastName: profile?.name?.familyName,
           emailVerified: true,

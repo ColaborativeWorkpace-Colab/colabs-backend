@@ -10,6 +10,7 @@ interface User {
     email?: string;
     isAdmin?: boolean;
     token?: string;
+    __t?: string;
   };
 }
 
