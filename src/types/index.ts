@@ -3,6 +3,7 @@ export * from './express';
 export * from './repository';
 export * from './job';
 export * from './notification';
+export * from './token';
 export * from './permission';
 export * from './svt';
 export * from './svtsolution';

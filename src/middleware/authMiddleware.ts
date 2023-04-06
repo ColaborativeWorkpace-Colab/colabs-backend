@@ -3,11 +3,7 @@ import jwt, { Secret } from 'jsonwebtoken';
 import { User } from '../models/';
 import asyncHandler from 'express-async-handler';
 import { jwtSecret } from '../config';
-interface Decoded {
-  id: string;
-  iat: Date;
-  exp: Date;
-}
+import { Decoded } from '../types';
 
 /**
  * Middleware used to protect routes from unauthorized users
