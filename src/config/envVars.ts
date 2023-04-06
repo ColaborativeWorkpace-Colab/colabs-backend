@@ -15,6 +15,9 @@ const envSchema = Joi.object({
   APP_EMAIL_PASS: Joi.string().required().description('app email password is required'),
   APP_URL_DEV: Joi.string().required().description('app url dev is required'),
   APP_URL_PROD: Joi.string().required().description('app url prod is required'),
+  GITHUB_CLIENT_ID: Joi.string().required().description('Github client id'),
+  GITHUB_CLIENT_SECRET: Joi.string().required().description('Github client secret'),
+  GITHUB_CALLBACK_URL: Joi.string().required().description('Github callback url'),
 })
   .unknown()
   .required();
@@ -34,3 +37,6 @@ export const appEmail = value.APP_EMAIL;
 export const appEmailPass = value.APP_EMAIL_PASS;
 export const appURLDev = value.APP_URL_DEV;
 export const appURLProd = value.APP_URL_PROD;
+export const githubClientId = value.GITHUB_CLIENT_ID;
+export const githubClientSecret = value.GITHUB_CLIENT_SECRET;
+export const githubCallbackUrl = value.GITHUB_CALLBACK_URL;

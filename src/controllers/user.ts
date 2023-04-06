@@ -271,6 +271,44 @@ const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * Authenticate user with Github
+ * @route GET /api/users/github
+ * @access Public
+ */
+const authWithGithub = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  return passport.authenticate('github', (error: any, user: any, _message: string) => {
+    if (error || !user) {
+      console.log('error', error);
+      next(error);
+    }
+    req.user = user;
+    next();
+  })(req, res, next);
+});
+
+/**
+ * Authenticate user with Github callback
+ * @route GET /api/users/Github/callback
+ * @access Public
+ */
+const authWithGithubCallback = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  return passport.authenticate('github', {
+    session: false,
+    failureRedirect: '/login',
+  })(req, res, next);
+});
+
+/**
+ * Redirect user with access-toke
+ * @route GET /api/users/Github/callback
+ * @access Public
+ */
+const authWithGithubRedirect = asyncHandler(async (req: Request, res: Response) => {
+  res.cookie('access-token', req.user?.token);
+  res.redirect('/');
+});
+
 export {
   authUser,
   getUserProfile,
@@ -284,4 +322,7 @@ export {
   authWithGoogleCallback,
   authWithGoogleRedirect,
   verifyEmail,
+  authWithGithub,
+  authWithGithubCallback,
+  authWithGithubRedirect,
 };

@@ -1,5 +1,6 @@
 import { Model, Document } from 'mongoose';
 import { Profile } from 'passport-google-oauth20';
+import { Profile as GithubProfile } from 'passport-github2';
 import { Permission } from './permission';
 
 export type Tag = {
@@ -55,4 +56,5 @@ export interface IUserDocument extends IUser, IFreelance, IEmployer, Document {
 export interface IUserModel extends Model<IUserDocument> {
   authUser: (password: string, email: string) => Promise<IUserDocument>;
   createWithGoogle: (profile: Profile) => Promise<IUserDocument>;
+  createWithGithub: (profile: GithubProfile) => Promise<IUserDocument>;
 }
