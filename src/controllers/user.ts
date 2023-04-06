@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from '../types/express';
 import asyncHandler from 'express-async-handler';
-import { User, Freelancer } from '../models/';
+import { User, Freelancer, Employer } from '../models/';
 import generateToken from '../utils/generateToken';
 import passport from 'passport';
 import { appEmail, appURLDev, jwtSecret, transport } from '../config';
@@ -8,8 +8,7 @@ import { verifyEmailFormat } from '../utils/mailFormats';
 import Token from '../models/Token';
 import jwt, { Secret } from 'jsonwebtoken';
 import httpStatus from 'http-status';
-import { Decoded, TokenTypes } from '../types';
-
+import { Decoded, IUserDocument, TokenTypes } from '../types';
 /**
  * Authenticate user and get token
  * @route POST /api/users/login
@@ -17,8 +16,12 @@ import { Decoded, TokenTypes } from '../types';
  */
 const authUser = asyncHandler(async (req: Request, res: Response) => {
   const { email, password } = req.body as { email: string; password: string };
+  const { type } = req.query as { type: string };
 
-  const user = await User.authUser(password, email);
+  let user;
+  if (type === 'freelancer') user = await Freelancer.authUser(password, email);
+  if (type === 'employer') user = await Employer.authUser(password, email);
+
   res.send(user);
 });
 
@@ -29,20 +32,31 @@ const authUser = asyncHandler(async (req: Request, res: Response) => {
  */
 const registerUser = asyncHandler(async (req: Request, res: Response) => {
   const { firstName, lastName, email, password } = req.body;
+  const { type } = req.query as { type: string };
 
-  const userExists = await Freelancer.findOne({ email });
+  let userExists;
+  if (type === 'freelancer') userExists = (await Freelancer.findOne({ email })) as IUserDocument;
+  if (type === 'employer') userExists = (await Employer.findOne({ email })) as IUserDocument;
 
   if (userExists) {
     res.status(400);
-    throw new Error('User already exists');
+    throw new Error('User already exists with this email');
   }
-
-  const user = new Freelancer({
-    firstName,
-    lastName,
-    email,
-    password,
-  });
+  let user;
+  if (type === 'freelancer')
+    user = (await Freelancer.create({
+      firstName,
+      lastName,
+      email,
+      password,
+    })) as IUserDocument;
+  if (type === 'employer')
+    user = (await Employer.create({
+      firstName,
+      lastName,
+      email,
+      password,
+    })) as IUserDocument;
 
   if (user) {
     const emailToken = await Token.create({
@@ -94,29 +108,23 @@ const getUserProfile = asyncHandler(async (req: Request, res: Response) => {
  * @route PUT /api/users/profile
  * @access Private
  */
-const updateUserProfile = asyncHandler(async (req: Request, res: Response) => {
-  const user = await User.findById(req.user?._id);
+const updateUserSelf = asyncHandler(async (req: Request, res: Response) => {
+  let user;
+  if (req.user?.__t === 'Freelancer') user = await Freelancer.findById(req.user?._id);
+  if (req.user?.__t === 'Employer') user = await Employer.findById(req.user?._id);
 
   if (user) {
-    user.firstName = req.body.name || user.firstName;
+    user.firstName = req.body.firstName || user.firstName;
+    user.lastName = req.body.lastName || user.lastName;
     user.email = req.body.email || user.email;
-
-    if (req.body.password) {
-      user.password = req.body.password;
-    }
-
-    const updatedUser = await user.save();
-
-    res.json({
-      _id: updatedUser._id,
-      firsName: updatedUser.firstName,
-      lastName: updatedUser.lastName,
-      email: updatedUser.email,
-      isAdmin: updatedUser.isAdmin,
-      token: generateToken(updatedUser._id),
+    user.password = req.body.password || user.password;
+    await user.save();
+    res.send({
+      message: 'User updated successfully',
+      user,
     });
   } else {
-    res.status(404);
+    res.status(httpStatus.NOT_FOUND);
     throw new Error('User not found');
   }
 });
@@ -171,20 +179,19 @@ const getUserById = asyncHandler(async (req: Request, res: Response) => {
  * @route PUT /api/users/:id
  * @access Private/Admin
  */
-const updateUser = asyncHandler(async (req: Request, res: Response) => {
+const updateUserOther = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params as { id: string };
   const user = await User.findById(id);
 
   if (user) {
-    user.firstName = req.body.name || user.firstName;
-    user.isAdmin = req.body.isAdmin;
-    const updatedUser = await user.save();
-
-    res.json({
-      _id: updatedUser._id,
-      fristName: updatedUser.firstName,
-      email: updatedUser.email,
-      isAdmin: updatedUser.isAdmin,
+    user.firstName = req.body.firstName || user.firstName;
+    user.lastName = req.body.lastName || user.lastName;
+    user.email = req.body.email || user.email;
+    user.password = req.body.password || user.password;
+    await user.save();
+    res.send({
+      message: 'User updated successfully',
+      user: user.cleanUser(),
     });
   } else {
     res.status(404);
@@ -198,13 +205,8 @@ const updateUser = asyncHandler(async (req: Request, res: Response) => {
  * @access Public
  */
 const authWithGoogle = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  return passport.authenticate('google', (error: any, user: any, _message: string) => {
-    if (error || !user) {
-      console.log('error', error);
-      next(error);
-    }
-    req.user = user;
-    next();
+  return passport.authenticate('google', {
+    state: JSON.stringify(req.query),
   })(req, res, next);
 });
 
@@ -214,10 +216,18 @@ const authWithGoogle = asyncHandler(async (req: Request, res: Response, next: Ne
  * @access Public
  */
 const authWithGoogleCallback = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  return passport.authenticate('google', {
-    session: false,
-    failureRedirect: '/login',
-  })(req, res, next);
+  return passport.authenticate(
+    'google',
+    {
+      session: false,
+      failureRedirect: '/login',
+    },
+    (err: Error, user: any) => {
+      if (err) next(err);
+      req.user = user;
+      next();
+    },
+  )(req, res, next);
 });
 
 /**
@@ -227,7 +237,7 @@ const authWithGoogleCallback = asyncHandler(async (req: Request, res: Response, 
  */
 const authWithGoogleRedirect = asyncHandler(async (req: Request, res: Response) => {
   res.cookie('access-token', req.user?.token);
-  res.redirect('/');
+  res.redirect(`/signup-success/token=${req.user?.token}`);
 });
 
 /**
@@ -258,7 +268,7 @@ const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
       await Token.findOneAndDelete({
         user: decodedData.id.split('-')[0],
       });
-      user.isVerified = true;
+      user.emailVerified = true;
       await user.save();
       const accessToken = await Token.create({
         user: user._id,
@@ -277,13 +287,8 @@ const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
  * @access Public
  */
 const authWithGithub = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  return passport.authenticate('github', (error: any, user: any, _message: string) => {
-    if (error || !user) {
-      console.log('error', error);
-      next(error);
-    }
-    req.user = user;
-    next();
+  return passport.authenticate('github', {
+    state: JSON.stringify(req.query),
   })(req, res, next);
 });
 
@@ -293,10 +298,18 @@ const authWithGithub = asyncHandler(async (req: Request, res: Response, next: Ne
  * @access Public
  */
 const authWithGithubCallback = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  return passport.authenticate('github', {
-    session: false,
-    failureRedirect: '/login',
-  })(req, res, next);
+  return passport.authenticate(
+    'github',
+    {
+      session: false,
+      failureRedirect: '/login',
+    },
+    (err: Error, user: any) => {
+      if (err) next(err);
+      req.user = user;
+      next();
+    },
+  )(req, res, next);
 });
 
 /**
@@ -306,18 +319,18 @@ const authWithGithubCallback = asyncHandler(async (req: Request, res: Response, 
  */
 const authWithGithubRedirect = asyncHandler(async (req: Request, res: Response) => {
   res.cookie('access-token', req.user?.token);
-  res.redirect('/');
+  res.redirect(`/signup-success/token=${req.user?.token}`);
 });
 
 export {
   authUser,
   getUserProfile,
   registerUser,
-  updateUserProfile,
+  updateUserSelf,
   getUsers,
   deleteUser,
   getUserById,
-  updateUser,
+  updateUserOther,
   authWithGoogle,
   authWithGoogleCallback,
   authWithGoogleRedirect,

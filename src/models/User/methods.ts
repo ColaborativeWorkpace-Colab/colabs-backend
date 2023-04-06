@@ -59,11 +59,12 @@ const staticMethods = {
         cleanUser = await exitUser.cleanUser();
       } else {
         const user = await this.create({
-          name: profile.displayName,
+          firstName: profile.displayName,
+          lastName: profile._json.family_name,
           email: profile._json.email,
-          password: profile.id,
+          imageUrl: profile._json.picture,
           googleId: profile._json.sub,
-          emailVerified: profile._json.email_verified,
+          emailVerified: true,
         });
         cleanUser = await user.cleanUser();
       }
@@ -83,9 +84,9 @@ const staticMethods = {
         cleanUser = await exitUser.cleanUser();
       } else {
         const user = await this.create({
-          name: profile.displayName,
           email,
-          password: profile.id,
+          firstName: profile.displayName,
+          lastName: profile?.name?.familyName,
           emailVerified: true,
         });
         cleanUser = await user.cleanUser();

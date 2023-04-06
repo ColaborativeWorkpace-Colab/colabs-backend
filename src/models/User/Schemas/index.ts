@@ -41,6 +41,7 @@ const UserSchema: Schema<IUserDocument, IUserModel> = new Schema(
       type: Boolean,
       default: false,
     },
+    imageUrl: String,
     googleId: String,
     emailVerified: Boolean,
   },
@@ -94,7 +95,6 @@ const EmployerSchema: Schema<IUserDocument, IUserModel> = new Schema(
     },
     companyName: {
       type: String,
-      required: true,
     },
     isVerified: {
       type: Boolean,

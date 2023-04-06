@@ -8,8 +8,8 @@ import {
   getUserProfile,
   getUsers,
   registerUser,
-  updateUser,
-  updateUserProfile,
+  updateUserOther,
+  updateUserSelf,
   authWithGoogle,
   authWithGoogleCallback,
   authWithGoogleRedirect,
@@ -27,18 +27,19 @@ router.route('/login').post(userValidators.loginUser, parseValidationError, auth
 router
   .route('/profile')
   .get(protect, getUserProfile)
-  .put(protect, userValidators.updateUser, parseValidationError, updateUserProfile);
+  .put(protect, userValidators.updateUser, parseValidationError, updateUserSelf);
 
-router.route('/google').get(authWithGoogle);
+router.route('/google').get(userValidators.socialRegisterUser, parseValidationError, authWithGoogle);
 router.route('/google/callback').get(authWithGoogleCallback, authWithGoogleRedirect);
-router.route('/github').get(authWithGithub);
+router.route('/github').get(userValidators.socialRegisterUser, parseValidationError, authWithGithub);
 router.route('/github/callback').get(authWithGithubCallback, authWithGithubRedirect);
-
 router.route('/signup/verify-email').get(verifyEmail);
+
+// Admin routes
 router
   .route('/:id')
   .delete(protect, admin, deleteUser)
   .get(protect, admin, getUserById)
-  .put(protect, admin, updateUser);
+  .put(protect, admin, updateUserOther);
 
 export default router;
