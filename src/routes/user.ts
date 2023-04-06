@@ -29,9 +29,10 @@ router
   .get(protect, getUserProfile)
   .put(protect, userValidators.updateUser, parseValidationError, updateUserProfile);
 
-router.route('/google').get(authWithGoogle);
+router.route('/google').get(userValidators.socialRegisterUser, parseValidationError, authWithGoogle);
 router.route('/google/callback').get(authWithGoogleCallback, authWithGoogleRedirect);
-router.route('/github').get(authWithGithub);
+
+router.route('/github').get(userValidators.socialRegisterUser, parseValidationError, authWithGithub);
 router.route('/github/callback').get(authWithGithubCallback, authWithGithubRedirect);
 
 router.route('/signup/verify-email').get(verifyEmail);

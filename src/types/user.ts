@@ -19,6 +19,7 @@ export interface IUser {
   isRegulator: boolean;
   googleId: string;
   emailVerified: boolean;
+  imageUrl: string;
 }
 
 export interface IFreelance extends IUser {
@@ -34,7 +35,7 @@ export interface IEmployer extends IUser {
   isVerified: boolean;
   jobs: string[];
   reviews: string[];
-  companyName: string;
+  companyName?: string;
   legalInfo: LegalInfo[];
 }
 

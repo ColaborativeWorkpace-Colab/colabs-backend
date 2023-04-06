@@ -198,13 +198,8 @@ const updateUser = asyncHandler(async (req: Request, res: Response) => {
  * @access Public
  */
 const authWithGoogle = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  return passport.authenticate('google', (error: any, user: any, _message: string) => {
-    if (error || !user) {
-      console.log('error', error);
-      next(error);
-    }
-    req.user = user;
-    next();
+  return passport.authenticate('google', {
+    state: JSON.stringify(req.query),
   })(req, res, next);
 });
 
@@ -214,10 +209,18 @@ const authWithGoogle = asyncHandler(async (req: Request, res: Response, next: Ne
  * @access Public
  */
 const authWithGoogleCallback = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  return passport.authenticate('google', {
-    session: false,
-    failureRedirect: '/login',
-  })(req, res, next);
+  return passport.authenticate(
+    'google',
+    {
+      session: false,
+      failureRedirect: '/login',
+    },
+    (err: Error, user: any) => {
+      if (err) next(err);
+      req.user = user;
+      next();
+    },
+  )(req, res, next);
 });
 
 /**
@@ -227,7 +230,7 @@ const authWithGoogleCallback = asyncHandler(async (req: Request, res: Response, 
  */
 const authWithGoogleRedirect = asyncHandler(async (req: Request, res: Response) => {
   res.cookie('access-token', req.user?.token);
-  res.redirect('/');
+  res.redirect(`/signup-success/token=${req.user?.token}`);
 });
 
 /**
@@ -258,7 +261,7 @@ const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
       await Token.findOneAndDelete({
         user: decodedData.id.split('-')[0],
       });
-      user.isVerified = true;
+      user.emailVerified = true;
       await user.save();
       const accessToken = await Token.create({
         user: user._id,
@@ -277,13 +280,8 @@ const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
  * @access Public
  */
 const authWithGithub = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  return passport.authenticate('github', (error: any, user: any, _message: string) => {
-    if (error || !user) {
-      console.log('error', error);
-      next(error);
-    }
-    req.user = user;
-    next();
+  return passport.authenticate('github', {
+    state: JSON.stringify(req.query),
   })(req, res, next);
 });
 
@@ -293,10 +291,18 @@ const authWithGithub = asyncHandler(async (req: Request, res: Response, next: Ne
  * @access Public
  */
 const authWithGithubCallback = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  return passport.authenticate('github', {
-    session: false,
-    failureRedirect: '/login',
-  })(req, res, next);
+  return passport.authenticate(
+    'github',
+    {
+      session: false,
+      failureRedirect: '/login',
+    },
+    (err: Error, user: any) => {
+      if (err) next(err);
+      req.user = user;
+      next();
+    },
+  )(req, res, next);
 });
 
 /**
@@ -306,7 +312,7 @@ const authWithGithubCallback = asyncHandler(async (req: Request, res: Response, 
  */
 const authWithGithubRedirect = asyncHandler(async (req: Request, res: Response) => {
   res.cookie('access-token', req.user?.token);
-  res.redirect('/');
+  res.redirect(`/signup-success/token=${req.user?.token}`);
 });
 
 export {
