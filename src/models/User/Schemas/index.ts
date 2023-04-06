@@ -63,7 +63,7 @@ const FreelancerSchema: Schema<IUserDocument, IUserModel> = new Schema(
   { timestamps: true, discriminatorKey: 'role' },
 );
 
-const EmployeerSchema: Schema<IUserDocument, IUserModel> = new Schema(
+const EmployerSchema: Schema<IUserDocument, IUserModel> = new Schema(
   {
     legalInfo: {
       type: [LegalInfoSchema],
@@ -85,4 +85,4 @@ const EmployeerSchema: Schema<IUserDocument, IUserModel> = new Schema(
   { timestamps: true, discriminatorKey: 'role' },
 );
 
-export { FreelancerSchema, EmployeerSchema, UserSchema };
+export { FreelancerSchema, EmployerSchema, UserSchema };

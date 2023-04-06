@@ -13,6 +13,7 @@ import {
   authWithGoogle,
   authWithGoogleCallback,
   authWithGoogleRedirect,
+  verifyEmail,
 } from '../controllers/user';
 import { admin, protect } from '../middleware/authMiddleware';
 const router = express.Router();
@@ -27,6 +28,8 @@ router
 
 router.route('/google').get(authWithGoogle);
 router.route('/google/callback').get(authWithGoogleCallback, authWithGoogleRedirect);
+
+router.route('/signup/verify-email').get(verifyEmail);
 router
   .route('/:id')
   .delete(protect, admin, deleteUser)

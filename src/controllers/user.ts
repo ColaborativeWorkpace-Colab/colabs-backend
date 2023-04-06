@@ -3,7 +3,12 @@ import asyncHandler from 'express-async-handler';
 import { User, Freelancer } from '../models/';
 import generateToken from '../utils/generateToken';
 import passport from 'passport';
-import { IUser } from 'src/types';
+import { appEmail, appURLDev, jwtSecret, transport } from '../config';
+import { verifyEmailFormat } from '../utils/mailFormats';
+import Token from '../models/Token';
+import jwt, { Secret } from 'jsonwebtoken';
+import httpStatus from 'http-status';
+import { Decoded, TokenTypes } from '../types';
 
 /**
  * Authenticate user and get token
@@ -23,7 +28,7 @@ const authUser = asyncHandler(async (req: Request, res: Response) => {
  * @access Public
  */
 const registerUser = asyncHandler(async (req: Request, res: Response) => {
-  const { firstName, lastName, email, password }: IUser = req.body;
+  const { firstName, lastName, email, password } = req.body;
 
   const userExists = await Freelancer.findOne({ email });
 
@@ -32,7 +37,7 @@ const registerUser = asyncHandler(async (req: Request, res: Response) => {
     throw new Error('User already exists');
   }
 
-  const user = await Freelancer.create({
+  const user = new Freelancer({
     firstName,
     lastName,
     email,
@@ -40,10 +45,22 @@ const registerUser = asyncHandler(async (req: Request, res: Response) => {
   });
 
   if (user) {
-    const cleaUser = await user.cleanUser();
-    res.status(201).json({
-      ...cleaUser,
-      token: generateToken(user.id),
+    const emailToken = await Token.create({
+      token: generateToken(`${user._id}-${user.email}`, '1d'),
+      expires: '1d',
+      user: user._id,
+      type: TokenTypes.EMAIL_VERIFY,
+    });
+    const link = `${appURLDev}/api/v1/users/signup/verify-email/?token=${emailToken.token}`;
+    await transport.sendMail({
+      from: appEmail as string,
+      to: user.email,
+      html: verifyEmailFormat(link),
+      subject: 'Verify your email',
+    });
+    await user.save();
+    res.send({
+      message: 'We have sent you verification email. Please verify your email',
     });
   } else {
     res.status(400);
@@ -213,6 +230,47 @@ const authWithGoogleRedirect = asyncHandler(async (req: Request, res: Response) 
   res.redirect('/');
 });
 
+/**
+ * Redirect user with access-toke
+ * @route GET /api/users/signup/verify-me
+ * @access Public
+ */
+const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
+  const { token } = req.query;
+  const secret: Secret = jwtSecret;
+  const decodedData = jwt.verify(token as string, secret) as unknown as Decoded;
+  const tokenExist = await Token.findOne({
+    user: decodedData.id.split('-')[0],
+  });
+  if (!tokenExist) {
+    res.status(httpStatus.NOT_FOUND).send({
+      message: 'Token not found',
+    });
+  } else {
+    const user = await Freelancer.findOne({
+      email: decodedData.id.split('-')[1],
+    });
+    if (!user) {
+      res.send({
+        message: 'No user found with this email',
+      });
+    } else {
+      await Token.findOneAndDelete({
+        user: decodedData.id.split('-')[0],
+      });
+      user.isVerified = true;
+      await user.save();
+      const accessToken = await Token.create({
+        user: user._id,
+        token: generateToken(user._id),
+        type: TokenTypes.ACCESS,
+        expires: '30d',
+      });
+      res.redirect(`http://localhost:3000/signup/verification-success/?token=${accessToken.token}`);
+    }
+  }
+});
+
 export {
   authUser,
   getUserProfile,
@@ -225,4 +283,5 @@ export {
   authWithGoogle,
   authWithGoogleCallback,
   authWithGoogleRedirect,
+  verifyEmail,
 };
