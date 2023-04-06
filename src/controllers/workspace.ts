@@ -1,10 +1,13 @@
 import { Request, Response } from '../types/express';
 import asyncHandler from 'express-async-handler';
-import { Repository, User } from '../models/';
+import { Freelancer, Repository, User } from '../models/';
 import { Octokit } from 'octokit';
+import * as fs from 'fs/promises';
+import { updatePermissions } from '../utils/updatePermissions';
+
 /**
  * Get Projects
- * @route GET /api/v1/workspaces
+ * @route GET /api/v1/workspaces/dashboard
  * @access Private
  */
 const getProjects = asyncHandler(async (req: Request, res: Response) => {
@@ -22,8 +25,59 @@ const getProjects = asyncHandler(async (req: Request, res: Response) => {
 });
 
 /**
+ * Get Project Files
+ * @route GET /api/v1/workspaces/projects/:projectId
+ * @access Private
+ */
+const getProjectFiles = asyncHandler(async (req: Request, res: Response) => {
+  const { projectId } = req.params as { projectId: string };
+  const repository = await Repository.findById(projectId);
+  const client = new Octokit({
+    auth: process.env.GITHUB_PERSONAL_ACCESS_TOKEN,
+  });
+
+  if (repository) {
+    const commits = await client.request(`GET /repos/${process.env.GITHUB_ORGANIZATION}/${repository.name}/commits`);
+
+    res.json({
+      files: repository,
+      commits,
+    });
+  } else {
+    res.status(404);
+    throw new Error('Project not found');
+  }
+});
+
+/**
+ * Get File Versions
+ * @route GET /api/v1/workspaces/projects/:projectId/:fileRef
+ * @access Private
+ */
+const getFileVersions = asyncHandler(async (req: Request, res: Response) => {
+  const { projectId, fileRef } = req.params as { projectId: string; fileRef: string };
+  const repository = await Repository.findById(projectId);
+  const client = new Octokit({
+    auth: process.env.GITHUB_PERSONAL_ACCESS_TOKEN,
+  });
+
+  if (repository) {
+    const files = await client.request(
+      `GET /repos/${process.env.GITHUB_ORGANIZATION}/${repository.name}/commits/${fileRef}`,
+    );
+
+    res.json({
+      files,
+    });
+  } else {
+    res.status(404);
+    throw new Error('Project not found');
+  }
+});
+
+/**
  * Create Project
- * @route GET /api/v1/workspaces
+ * @route POST /api/v1/workspaces/projects
  * @access Private (optional)
  */
 const createProject = asyncHandler(async (req: Request, res: Response) => {
@@ -36,6 +90,7 @@ const createProject = asyncHandler(async (req: Request, res: Response) => {
 
   if (user) {
     errorMessage = 'Project Creation Failed';
+
     const repoResponse = await client.request(`POST /orgs/${process.env.GITHUB_ORGANIZATION}/repos`, {
       name: projectName,
       homepage: 'https://github.com',
@@ -46,6 +101,14 @@ const createProject = asyncHandler(async (req: Request, res: Response) => {
       const repository = await Repository.create({ name: projectName, owner: userId });
 
       if (repository) {
+        const permissions = user.permissions;
+        permissions.adminAccess.projects.push(repository.id);
+        permissions.deleteFiles.projects.push(repository.id);
+        permissions.uploadFiles.projects.push(repository.id);
+        permissions.deleteProject.projects.push(repository.id);
+
+        await user.updateOne({ permissions });
+
         res.json({
           message: `${projectName} is successfully created.`,
         });
@@ -59,34 +122,281 @@ const createProject = asyncHandler(async (req: Request, res: Response) => {
 
 /**
  * Delete Project
- * @route GET /api/v1/workspaces
+ * @route DELETE /api/v1/workspaces/projects/:projectId/delete
  * @access Private
  */
 const deleteProject = asyncHandler(async (req: Request, res: Response) => {
-  const { projectId, projectName } = req.body as { projectId: string; projectName: string };
+  const { projectId } = req.params as { projectId: string };
+  const { projectName, workerId } = req.body as { projectName: string; workerId: string };
   const client = new Octokit({
     auth: process.env.GITHUB_PERSONAL_ACCESS_TOKEN,
   });
+  const worker = await Freelancer.findById(workerId);
 
-  const repoResponse = await client.request(`DELETE /repos/${process.env.GITHUB_ORGANIZATION}/${projectName}`);
-  let errorMessage = 'Failed Request';
-  // TODO: Notify other users if there are any
-  if (repoResponse.status === 204) {
-    errorMessage = 'Project not found';
-    const project = await Repository.findByIdAndDelete(projectId);
+  let errorMessage = 'User not found';
+  let errorStatusCode = 404;
 
-    if (project) {
-      res.json({
-        message: `${project.name} is successfully deleted.`,
-      });
-      return;
+  if (worker) {
+    errorMessage = 'You do not have access to delete this project.';
+    errorStatusCode = 401;
+
+    if (worker.permissions.deleteProject.projects.includes(projectId)) {
+      const repoResponse = await client.request(`DELETE /repos/${process.env.GITHUB_ORGANIZATION}/${projectName}`);
+      errorMessage = 'Failed Request';
+
+      if (repoResponse.status === 204) {
+        const project = await Repository.findByIdAndDelete(projectId);
+        errorMessage = 'Project not found';
+
+        if (project) {
+          res.json({
+            message: `${project.name} is successfully deleted.`,
+          });
+          return;
+        }
+      }
     }
   }
 
-  res.status(404);
+  res.status(errorStatusCode);
   throw new Error(errorMessage);
 });
 
-// TODO: Implement an endpoint for deleting, uploading a file to a project
-// TODO: When adding files to projects, notify concerning users of the changes
-export { getProjects, createProject, deleteProject };
+/**
+ * Upload files to project
+ * @route PUT /api/v1/workspaces/projects/:projectId/uploadFiles
+ * @access Private
+ */
+const uploadProjectFiles = asyncHandler(async (req: Request, res: Response) => {
+  const { projectId } = req.params as { projectId: string };
+  const { projectName, commitMessage, workerId } = req.body as {
+    projectName: string;
+    commitMessage: string;
+    workerId: string;
+  };
+  const client = new Octokit({
+    auth: process.env.GITHUB_PERSONAL_ACCESS_TOKEN,
+  });
+  const files = Array.from((req.files ?? []) as unknown[]);
+  const worker = await Freelancer.findById(workerId);
+  const project = await Repository.findById(projectId);
+  const uploadedFiles: object[] = [];
+
+  let fileIterator = 0;
+
+  if (worker && project) {
+    if (worker.permissions.uploadFiles.projects.includes(projectId)) {
+      new Promise((resolve, reject) => {
+        files.forEach(async (f) => {
+          const file = JSON.parse(JSON.stringify(f));
+          const content = await fs.readFile(file.path, { encoding: 'base64' });
+          let fileSha = '';
+
+          project.files.forEach((projectFile: any) => {
+            if (projectFile.fileName === file.originalname) {
+              fileSha = projectFile.sha;
+              return;
+            }
+          });
+
+          const uploadResponse = await client.request(
+            `PUT /repos/${process.env.GITHUB_ORGANIZATION}/${projectName}/contents/${file.originalname}`,
+            {
+              message: commitMessage,
+              committer: {
+                name: `${worker.firstName} ${worker.lastName}`,
+                email: worker.email,
+              },
+              sha: fileSha,
+              content,
+            },
+          );
+
+          if (uploadResponse) {
+            fileIterator++;
+            const fileReference = { fileName: uploadResponse.data.content.name, sha: uploadResponse.data.content.sha };
+            let fileExists = false;
+
+            project.files.forEach((projectFile: any) => {
+              if (projectFile.fileName === fileReference.fileName) {
+                fileExists = true;
+                return;
+              }
+            });
+
+            if (!fileExists) uploadedFiles.push(fileReference);
+
+            if (fileIterator === files.length) resolve(true);
+          } else reject('File Upload request failed');
+        });
+
+        if (files.length === 0) reject('Files not uploaded');
+      })
+        .then(async () => {
+          const databaseFilesUpadted = await project.updateOne({ files: [...project.files, ...uploadedFiles] });
+
+          if (databaseFilesUpadted) {
+            res.json({
+              message: `Files are uploaded successfully.`,
+            });
+            return;
+          } else {
+            res.status(500);
+            throw new Error('Failed to store file references in database');
+          }
+        })
+        .catch((error) => {
+          res.status(500).json({ error });
+          throw new Error(error);
+        })
+        .finally(() => {
+          files.forEach((f) => {
+            const file = JSON.parse(JSON.stringify(f));
+            fs.unlink(file.path);
+          });
+        });
+    } else {
+      res.status(401);
+      throw new Error('You do not have access to upload files to this project.');
+    }
+  } else {
+    res.status(404);
+    throw new Error(worker ? 'Project not found' : 'User not found');
+  }
+});
+
+/**
+ * Delete files from project
+ * @route PUT /api/v1/workspaces/projects/:projectId/removeFiles
+ * @access Private
+ */
+const deleteProjectFiles = asyncHandler(async (req: Request, res: Response) => {
+  const { projectId } = req.params as { projectId: string };
+  const { projectName, files, workerId, commitMessage } = req.body as {
+    projectName: string;
+    files: string;
+    workerId: string;
+    commitMessage: string;
+  };
+  const client = new Octokit({
+    auth: process.env.GITHUB_PERSONAL_ACCESS_TOKEN,
+  });
+  const worker = await Freelancer.findById(workerId);
+  const project = await Repository.findById(projectId);
+  const filesToBeDeleted = files.split(',');
+
+  let fileSha = '';
+  let fileIterator = 0;
+
+  if (worker && project) {
+    if (worker.permissions.uploadFiles.projects.includes(projectId)) {
+      new Promise((resolve, reject) => {
+        filesToBeDeleted.forEach(async (fileName) => {
+          project.files.forEach((projectFile: any) => {
+            if (projectFile.fileName === fileName) {
+              fileSha = projectFile.sha;
+              return;
+            }
+          });
+
+          const deleteResponse = await client.request(
+            `DELETE /repos/${process.env.GITHUB_ORGANIZATION}/${projectName}/contents/${fileName}`,
+            {
+              message: commitMessage,
+              committer: {
+                name: `${worker.firstName} ${worker.lastName}`,
+                email: worker.email,
+              },
+              sha: fileSha,
+            },
+          );
+
+          if (deleteResponse) {
+            fileIterator++;
+            if (fileIterator === filesToBeDeleted.length) resolve(true);
+          } else reject('File Upload request failed');
+        });
+      })
+        .then(async () => {
+          const unremovedFiles: string[] = [];
+          project.files.forEach((file: any) => {
+            if (!filesToBeDeleted.includes(file.fileName)) unremovedFiles.push(file);
+          });
+
+          const databaseFilesUpadted = await project.updateOne({ files: unremovedFiles });
+
+          if (databaseFilesUpadted) {
+            res.json({
+              message: `Files are deleted successfully.`,
+            });
+            return;
+          } else {
+            res.status(500);
+            throw new Error('Failed to delete file references in database');
+          }
+        })
+        .catch((error) => {
+          res.status(500);
+          throw new Error(error);
+        });
+    } else {
+      res.status(401);
+      throw new Error('You do not have access to delete files to this project.');
+    }
+  } else {
+    res.status(404);
+    throw new Error(worker ? 'Project not found' : 'User not found');
+  }
+});
+
+/**
+ * Give permissions to other users for a given project
+ * @route PUT /api/v1/workspaces/projects/:projectId/givePermission
+ * @access Private
+ */
+const givePermissions = asyncHandler(async (req: Request, res: Response) => {
+  const { projectId } = req.params as { projectId: string };
+  const { ownerId, memberId, permission } = req.body as { ownerId: string; memberId: string; permission: string };
+  const owner = await Freelancer.findById(ownerId);
+  const member = await Freelancer.findById(memberId);
+
+  let errorMessage = 'Users not found';
+  let statusCode = 404;
+
+  if (owner && member) {
+    errorMessage = 'You do not have access to delete files to this project.';
+    statusCode = 401;
+
+    if (owner.permissions.adminAccess.projects.includes(projectId)) {
+      const memberPermissions = member.permissions;
+      errorMessage = `Failed assigning permissions to ${member.firstName} ${member.lastName}`;
+      statusCode = 500;
+
+      updatePermissions(permission, projectId, memberPermissions);
+
+      const dbRespnse = await member.updateOne({ permissions: memberPermissions });
+
+      if (dbRespnse) {
+        res.json({
+          message: `${member.firstName} ${member.lastName} has acquired new permissions to this project.`,
+        });
+
+        return;
+      }
+    }
+  }
+
+  res.status(statusCode);
+  throw new Error(errorMessage);
+});
+
+export {
+  getProjects,
+  createProject,
+  deleteProject,
+  uploadProjectFiles,
+  deleteProjectFiles,
+  givePermissions,
+  getProjectFiles,
+  getFileVersions,
+};

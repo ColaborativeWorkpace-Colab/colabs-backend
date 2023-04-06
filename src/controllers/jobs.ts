@@ -1,11 +1,10 @@
 import { Request, Response } from '../types/express';
 import asyncHandler from 'express-async-handler';
-import { Job, Freelancer, Notification, Employeer } from '../models';
-// TODO: When manipulating a job info, only the owner has access
-// Note: A job has four statuses: Pending, Completed, Active, Ready, Available
+import { Job, Freelancer, Notification, Employer } from '../models';
 import { Octokit } from 'octokit';
 import { getFilesfromRepo } from '../utils/download';
-// TODO: Record Notifications for necessary endpoints
+
+// Note: A job has four statuses: Pending, Completed, Active, Ready, Available
 // NOTE: When manipulating a job info, only the owner has access
 // NOTE: A job has five statuses: Pending, Completed, Active, Ready, Available
 /**
@@ -42,13 +41,14 @@ const postJob = asyncHandler(async (req: Request, res: Response) => {
     requirements: string;
     earnings: number;
   };
-  const user = await Employeer.findById(recruiterId);
+
+  const employer = await Employer.findById(recruiterId);
   let errorMessage = 'User not found';
-  if (user) {
+  if (employer) {
     errorMessage =
       'Your account does not yet have access to this feature. Complete your profile verification to proceed.';
 
-    if (user.isRecruiterVerified) {
+    if (employer.isVerified) {
       errorMessage = 'Job Posting Failed';
       const job = await Job.create({
         title,
@@ -102,18 +102,34 @@ const deleteJob = asyncHandler(async (req: Request, res: Response) => {
  */
 const completeJob = asyncHandler(async (req: Request, res: Response) => {
   const { jobId } = req.params as { jobId: string };
-  // TODO: Send a notification for both worker and recruiter (job status changes to 'Ready')
   // TODO: Only provide the job file assets to the recruiter when payment is completed
   // TODO: Add payment
   // TODO: Implement upgrade points and update user profile
   const job = await Job.findByIdAndUpdate(jobId, { status: 'Completed' });
+  let errorMessage = 'Job not found';
+
   if (job) {
-    res.json({
-      message: `You have completed ${job?.title} successfully.`,
+    errorMessage = 'Notification Request Failed';
+
+    const pendingNotifications = job.workers.map((worker) => {
+      return {
+        title: `${job.title} Completed`,
+        message: `Congratulations!! You have completed the ${job.title} job.`,
+        userId: worker,
+      };
     });
+
+    const notification = await Notification.insertMany(pendingNotifications);
+
+    if (notification) {
+      res.json({
+        message: `${job?.title} completed successfully.`,
+      });
+      return;
+    }
   } else {
     res.status(404);
-    throw new Error('Job not found');
+    throw new Error(errorMessage);
   }
 });
 
@@ -125,19 +141,37 @@ const completeJob = asyncHandler(async (req: Request, res: Response) => {
 const applyJob = asyncHandler(async (req: Request, res: Response) => {
   const { jobId } = req.params as { jobId: string };
   const { workerIds } = req.body as { workerIds: string };
+  const workers = workerIds.split(',');
+  const unverifiedWorkers: string[] = [];
+  let workerIterator = 0;
 
-  // TODO: Verify user is leigible for work
-  // TODO: If job has SVT's and user do not have the skills in their profile, first send those
-  const job = await Job.findByIdAndUpdate(jobId, { workers: workerIds.split(','), status: 'Active' });
-
-  if (job) {
-    res.json({
-      message: `${job?.title} applied successfully.`,
+  new Promise((resolve, _reject) => {
+    workers.forEach((workerId) => {
+      workerIterator++;
+      Freelancer.findById(workerId).then((worker) => {
+        if (worker && !worker.isVerified) unverifiedWorkers.push(workerId);
+        if (workerIterator === workers.length) resolve(true);
+      });
     });
-  } else {
-    res.status(404);
-    throw new Error('Job not found');
-  }
+  }).then(async () => {
+    if (unverifiedWorkers.length === 0) {
+      const job = await Job.findByIdAndUpdate(jobId, { workers, status: 'Active' });
+
+      if (job)
+        res.json({
+          message: `${job?.title} applied successfully.`,
+        });
+      else {
+        res.status(404);
+        throw new Error('Job not found');
+      }
+    } else {
+      res.json({
+        message: 'There are users that are not verified for work yet. Make sure they are verified and try again.',
+        unverifiedWorkers,
+      });
+    }
+  });
 });
 
 /**
@@ -147,19 +181,40 @@ const applyJob = asyncHandler(async (req: Request, res: Response) => {
  */
 const addTeamMembers = asyncHandler(async (req: Request, res: Response) => {
   const { jobId } = req.params as { jobId: string };
-  const { team } = req.body as { team: string };
+  const { ownerName, team } = req.body as { ownerName: string; team: string };
   const teamMembers: string[] = team.split(',');
-  const job = await Job.findByIdAndUpdate(jobId, { workers: teamMembers });
-  // TODO: Get Previous members from client
-  // TODO: Notify previous members
+  const job = await Job.findById(jobId);
+  let errorMessage = 'Job not found';
+
   if (job) {
-    res.json({
-      message: `You have added new members to the job.`,
-    });
-  } else {
-    res.status(404);
-    throw new Error('Job not found');
+    const workers = [...job.workers, ...teamMembers];
+    const newMembersAdded = await Job.findByIdAndUpdate(jobId, { workers });
+    errorMessage = 'Failed to add new members.';
+
+    if (newMembersAdded) {
+      errorMessage = 'Notification Request Failed';
+
+      const pendingNotifications = workers.map((worker) => {
+        return {
+          title: `Joined a job team`,
+          message: `${ownerName} has added you to work on their job as a team.`,
+          userId: worker,
+        };
+      });
+
+      const notification = await Notification.insertMany(pendingNotifications);
+
+      if (notification) {
+        res.json({
+          message: `You have added new members to the job.`,
+        });
+        return;
+      }
+    }
   }
+
+  res.status(404);
+  throw new Error(errorMessage);
 });
 
 /**
@@ -173,7 +228,6 @@ const jobReady = asyncHandler(async (req: Request, res: Response) => {
   let errorMessage = 'Job not found';
 
   if (job) {
-    // TODO: Notify owner of the job state change
     const notification = await Notification.create({
       title: 'Files Ready',
       message: `Your workers are ready with the files on the ${job.title} job.`,
@@ -208,7 +262,6 @@ const downloadJobResultPackage = asyncHandler(async (req: Request, res: Response
   const selectedFiles: string[] = files.split(',');
 
   if (repoResponse) {
-    // TODO: Package all files into a compressed zip file
     const downloadUrls: any[] = [];
     repoResponse.data.forEach((value: any) => {
       if (selectedFiles.includes(value.name)) {

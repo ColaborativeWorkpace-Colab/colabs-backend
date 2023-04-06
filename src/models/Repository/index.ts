@@ -8,6 +8,10 @@ const repositorySchema: Schema<IRepositoryDocument, IRepositoryModel> = new mong
       type: String,
       required: true,
     },
+    files: {
+      type: [Object],
+      default: [],
+    },
     owner: {
       type: String,
       required: true,

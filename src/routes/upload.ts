@@ -3,7 +3,7 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import asyncHandler from 'express-async-handler';
-import { uploadCloudinary, uploadMulter } from '../utils';
+import { uploadCloudinary, imageUploadMulter } from '../utils';
 const router = express.Router();
 
 const uploadController = asyncHandler(async (req: Request, res: Response) => {
@@ -18,6 +18,6 @@ const uploadController = asyncHandler(async (req: Request, res: Response) => {
   res.send(imgUrl);
 });
 
-router.post('/', uploadMulter.single('image'), uploadController);
+router.post('/', imageUploadMulter.single('image'), uploadController);
 
 export default router;

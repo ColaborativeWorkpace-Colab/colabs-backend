@@ -1,5 +1,11 @@
 import { Model, Document } from 'mongoose';
 import { Profile } from 'passport-google-oauth20';
+import { Permission } from './permission';
+
+export type Tag = {
+  name: string;
+  score: number;
+};
 
 // Types
 export interface IUser {
@@ -7,22 +13,23 @@ export interface IUser {
   lastName: string;
   email: string;
   password: string;
+  tags: [Tag];
   isAdmin: boolean;
-  isWorkVerified: boolean;
-  isRecruiterVerified: boolean;
-  skills: String[];
-  googleId: String;
-  emailVerified: Boolean;
+  isRegulator: boolean;
+  googleId: string;
+  emailVerified: boolean;
 }
 
 export interface IFreelance extends IUser {
   isVerified: boolean;
   jobs: string[];
   reviews: string[];
-  hourlyRate: Number;
+  skills: string[];
+  hourlyRate: number;
+  permissions: Permission;
 }
 
-export interface IEmployeer extends IUser {
+export interface IEmployer extends IUser {
   isVerified: boolean;
   jobs: string[];
   reviews: string[];
@@ -39,7 +46,7 @@ export interface ICleanUser extends IUser {
 }
 
 // Documents
-export interface IUserDocument extends IUser, IFreelance, IEmployeer, Document {
+export interface IUserDocument extends IUser, IFreelance, IEmployer, Document {
   matchPassword: (password: string) => Promise<Boolean>;
   cleanUser: () => Promise<ICleanUser>;
 }

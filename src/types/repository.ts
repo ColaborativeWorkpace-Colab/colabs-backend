@@ -5,6 +5,7 @@ import { Model, Document } from 'mongoose';
  */
 export interface IRepository {
   name: string;
+  files: object[];
   owner: string;
 }
 

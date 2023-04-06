@@ -19,6 +19,6 @@ UserSchema.pre('save', async function (this: IUserDocument, next) {
 
 const User = mongoose.model<IUserDocument, IUserModel>('User', UserSchema);
 const Freelancer = User.discriminator('Freelancer', FreelancerSchema);
-const Employeer = User.discriminator('Employeer', EmployerSchema);
+const Employer = User.discriminator('Employer', EmployerSchema);
 
-export { User, Freelancer, Employeer };
+export { User, Freelancer, Employer };
