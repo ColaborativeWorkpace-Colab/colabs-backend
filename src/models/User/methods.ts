@@ -2,6 +2,7 @@ import { IUserDocument, IUserModel } from 'src/types';
 import generateToken from '../../utils/generateToken';
 import bcrypt from 'bcryptjs';
 import { Profile } from 'passport-google-oauth20';
+import { Profile as GithubProfile } from 'passport-github2';
 
 const modelMethods = {
   /**
@@ -63,6 +64,29 @@ const staticMethods = {
           password: profile.id,
           googleId: profile._json.sub,
           emailVerified: profile._json.email_verified,
+        });
+        cleanUser = await user.cleanUser();
+      }
+
+      return { ...cleanUser, token: generateToken(cleanUser.id) };
+    } catch (err) {
+      throw new Error(err);
+    }
+  },
+
+  async createWithGithub(this: IUserModel, profile: GithubProfile & { emails: { value: string; type: string }[] }) {
+    try {
+      const email = profile?.emails[0]?.value;
+      const exitUser = await this.findOne({ email });
+      let cleanUser;
+      if (exitUser) {
+        cleanUser = await exitUser.cleanUser();
+      } else {
+        const user = await this.create({
+          name: profile.displayName,
+          email,
+          password: profile.id,
+          emailVerified: true,
         });
         cleanUser = await user.cleanUser();
       }

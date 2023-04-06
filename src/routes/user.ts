@@ -14,6 +14,9 @@ import {
   authWithGoogleCallback,
   authWithGoogleRedirect,
   verifyEmail,
+  authWithGithub,
+  authWithGithubRedirect,
+  authWithGithubCallback,
 } from '../controllers/user';
 import { admin, protect } from '../middleware/authMiddleware';
 const router = express.Router();
@@ -28,6 +31,8 @@ router
 
 router.route('/google').get(authWithGoogle);
 router.route('/google/callback').get(authWithGoogleCallback, authWithGoogleRedirect);
+router.route('/github').get(authWithGithub);
+router.route('/github/callback').get(authWithGithubCallback, authWithGithubRedirect);
 
 router.route('/signup/verify-email').get(verifyEmail);
 router

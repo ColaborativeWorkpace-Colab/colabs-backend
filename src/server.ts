@@ -17,8 +17,12 @@ import socialRoutes from './routes/social';
 import morgan from 'morgan';
 import { nodeEnv } from './config';
 import passport from 'passport';
+import envExample from './utils/envExample';
 
 const PORT = process.env.PORT || 5000;
+
+// load env vars example
+envExample();
 
 // Passport config
 passportConfig(passport);
