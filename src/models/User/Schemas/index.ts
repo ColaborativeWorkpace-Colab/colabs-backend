@@ -45,7 +45,7 @@ const UserSchema: Schema<IUserDocument, IUserModel> = new Schema(
     googleId: String,
     emailVerified: Boolean,
   },
-  { timestamps: true },
+  { timestamps: true, discriminatorKey: 'type' },
 );
 
 const FreelancerSchema: Schema<IUserDocument, IUserModel> = new Schema(
@@ -85,7 +85,7 @@ const FreelancerSchema: Schema<IUserDocument, IUserModel> = new Schema(
       },
     },
   },
-  { timestamps: true, discriminatorKey: 'role' },
+  { timestamps: true },
 );
 
 const EmployerSchema: Schema<IUserDocument, IUserModel> = new Schema(
@@ -106,7 +106,7 @@ const EmployerSchema: Schema<IUserDocument, IUserModel> = new Schema(
       type: [String],
     },
   },
-  { timestamps: true, discriminatorKey: 'role' },
+  { timestamps: true },
 );
 
 export { FreelancerSchema, EmployerSchema, UserSchema };
