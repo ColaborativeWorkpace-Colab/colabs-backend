@@ -10,7 +10,7 @@ import {
 import { Profile, VerifyCallback } from 'passport-google-oauth20';
 import { Strategy as GithubStrategy, Profile as GithubProfile } from 'passport-github2';
 import { Request } from '../../types';
-import { findTypeofUser } from 'src/utils/finder';
+import { findTypeofUser } from '../../utils/finder';
 
 const googleStategey = new GoogleStrategy(
   {

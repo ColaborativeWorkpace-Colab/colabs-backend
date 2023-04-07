@@ -16,7 +16,6 @@ const tokenSchema: Schema<ITokenDocument, ITokenModel> = new Schema({
   type: {
     type: String,
     default: TokenTypes.ACCESS,
-    // enum: [TokenTypes.ACCESS,TokenTypes.EMAIL_VERIFY, TokenTypes.PASS_RESET, TokenTypes.REFRESH],
     enum: Object.values(TokenTypes),
     required: true,
   },
