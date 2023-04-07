@@ -20,6 +20,10 @@ const userValidators = {
     body('email', 'Please include a valid email').isEmail(),
     body('password', 'Password is required').exists(),
   ],
+  forgotPassword: [
+    query('type', 'User type is incorrect or missign').isIn(['freelancer', 'employer']).not().isEmpty(),
+    body('email', 'Please include a valid email').isEmail(),
+  ],
 };
 
 export default userValidators;

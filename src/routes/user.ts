@@ -17,6 +17,7 @@ import {
   authWithGithub,
   authWithGithubRedirect,
   authWithGithubCallback,
+  forgotPassword,
 } from '../controllers/user';
 import { admin, protect } from '../middleware/authMiddleware';
 const router = express.Router();
@@ -34,6 +35,7 @@ router.route('/google/callback').get(authWithGoogleCallback, authWithGoogleRedir
 router.route('/github').get(userValidators.socialRegisterUser, parseValidationError, authWithGithub);
 router.route('/github/callback').get(authWithGithubCallback, authWithGithubRedirect);
 router.route('/signup/verify-email').get(verifyEmail);
+router.route('/forgot-password').post(userValidators.forgotPassword, parseValidationError, forgotPassword);
 
 // Admin routes
 router
