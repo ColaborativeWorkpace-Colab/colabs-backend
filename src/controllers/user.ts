@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from '../types/express';
 import asyncHandler from 'express-async-handler';
-import { Employer, Freelancer } from '../models/';
+import { Employer, Freelancer, Request as RequestModel } from '../models/';
 import generateToken from '../utils/generateToken';
 import passport from 'passport';
 import { appEmail, appURLDev, jwtSecret, transport } from '../config';
@@ -10,6 +10,7 @@ import jwt, { Secret } from 'jsonwebtoken';
 import httpStatus from 'http-status';
 import { Decoded, TokenTypes } from '../types';
 import { UserDiscriminators, findTypeofUser } from '../utils/finder';
+import { RequestDocs, RequestStatus, RequestType } from '../types/request';
 /**
  * Authenticate user and get token
  * @route POST /api/users/login
@@ -341,6 +342,108 @@ const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
   }
 });
 
+// TODO: need refactoring
+
+/**
+ * Request account verification
+ * @route POST /api/users/request
+ * @access Public
+ */
+const submitRequest = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?._id;
+  const { docs, type } = req.body as { docs: RequestDocs[]; type: RequestType };
+
+  await RequestModel.create({
+    user: userId,
+    docs: [...docs],
+    status: RequestStatus.INREVIEW,
+    type,
+  });
+
+  res.status(httpStatus.CREATED).send({
+    message: 'Request created successfully',
+  });
+});
+
+/**
+ * Get all pending requests
+ * @route POST /api/users/request
+ * @access Private/Admin
+ */
+const getAllRequestOthers = asyncHandler(async (_req: Request, res: Response) => {
+  // TODO: add pagination
+  const requests = await RequestModel.find({ status: RequestStatus.INREVIEW });
+  res.status(httpStatus.OK).send({ requests });
+});
+
+/**
+ * Get all my requests
+ * @route POST /api/users/request
+ * @access Private
+ */
+const getAllRequestSelf = asyncHandler(async (_req: Request, res: Response) => {
+  // TODO: add pagination
+  const requests = await RequestModel.find({ user: _req.user?._id });
+  res.status(httpStatus.OK).send({ requests });
+});
+
+/**
+ * Get request by id
+ * @route get /api/users/request/:id
+ * @access Private/Admin
+ */
+const getRequestByIdOthers = asyncHandler(async (_req: Request, res: Response) => {
+  const { id } = _req.params;
+  const request = await RequestModel.findById(id);
+  if (!request) res.status(httpStatus.NOT_FOUND).send({ message: 'Request not found' });
+  res.status(httpStatus.OK).send({ request });
+});
+
+/**
+ * Get request by id
+ * @route get /api/users/request/:id
+ * @access Private/Admin
+ */
+const getRequestByIdSelf = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const request = await RequestModel.findOne({ user: req.user?._id, _id: id });
+  if (!request) res.status(httpStatus.NOT_FOUND).send({ message: 'Request not found' });
+  res.status(httpStatus.OK).send({ request });
+});
+
+/**
+ * Get request by id
+ * @route get /api/users/request/:id
+ * @access Private/Admin
+ */
+const deleteRequestByIdSelf = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const existRequest = await RequestModel.findOne({ user: req.user?._id, _id: id });
+  if (!existRequest) res.status(httpStatus.NOT_FOUND).send({ message: 'Request not found' });
+  await RequestModel.deleteOne({ user: req.user?._id, _id: id });
+  res.status(httpStatus.OK).send({ message: 'Request deleted successfully' });
+});
+
+/**
+ * Update request status
+ * @route PUT /api/users/request/:id
+ * @access Private/Admin
+ * @param {string} id - request id
+ */
+const updateRequest = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { action } = req.query as { action: RequestStatus.APPROVED | RequestStatus.REJECTED };
+  const request = await RequestModel.findById(id);
+  if (!request) res.status(httpStatus.NOT_FOUND).send({ message: 'Request not found' });
+  else {
+    if (request?.status === RequestStatus.APPROVED)
+      res.status(httpStatus.BAD_REQUEST).send({ message: 'Request already approved' });
+    request.status = action;
+    await request.save();
+    res.status(httpStatus.OK).send({ message: 'Request updated successfully', request });
+  }
+});
+
 export {
   authUser,
   getUserProfile,
@@ -358,4 +461,11 @@ export {
   authWithGithubCallback,
   authWithGithubRedirect,
   forgotPassword,
+  submitRequest,
+  getAllRequestOthers,
+  updateRequest,
+  getRequestByIdOthers,
+  getAllRequestSelf,
+  getRequestByIdSelf,
+  deleteRequestByIdSelf,
 };
