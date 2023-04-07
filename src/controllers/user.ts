@@ -4,7 +4,7 @@ import { User, Freelancer, Employer } from '../models/';
 import generateToken from '../utils/generateToken';
 import passport from 'passport';
 import { appEmail, appURLDev, jwtSecret, transport } from '../config';
-import { verifyEmailFormat } from '../utils/mailFormats';
+import { forgotPasswordFormat, verifyEmailFormat } from '../utils/mailFormats';
 import Token from '../models/Token';
 import jwt, { Secret } from 'jsonwebtoken';
 import httpStatus from 'http-status';
@@ -322,6 +322,34 @@ const authWithGithubRedirect = asyncHandler(async (req: Request, res: Response) 
   res.redirect(`/signup-success/token=${req.user?.token}`);
 });
 
+/**
+ * Forgot password
+ * @route POST /api/users/forgot-password
+ * @access Public
+ */
+const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
+  const { email } = req.body;
+  const { type } = req.query;
+  let user;
+  if (type === 'freelancer') user = await Freelancer.findOne({ email });
+  if (type === 'employer') user = await Employer.findOne({ email });
+
+  if (!user) res.status(httpStatus.NOT_FOUND).send({ message: 'User not found' });
+  else {
+    const token = generateToken(user._id);
+    const link = `${appURLDev}/reset-password/?token=${token}`;
+    await transport.sendMail({
+      from: appEmail,
+      to: email,
+      subject: 'Password Reset',
+      html: forgotPasswordFormat(link),
+    });
+    res.send({
+      message: 'Password reset link sent to your email',
+    });
+  }
+});
+
 export {
   authUser,
   getUserProfile,
@@ -338,4 +366,5 @@ export {
   authWithGithub,
   authWithGithubCallback,
   authWithGithubRedirect,
+  forgotPassword,
 };
