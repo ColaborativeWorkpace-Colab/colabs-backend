@@ -8,3 +8,4 @@ export * from './permission';
 export * from './svt';
 export * from './svtsolution';
 export * from './social';
+export * from './chat';
