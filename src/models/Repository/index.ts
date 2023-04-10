@@ -8,6 +8,9 @@ const repositorySchema: Schema<IRepositoryDocument, IRepositoryModel> = new mong
       type: String,
       required: true,
     },
+    tasks: {
+      type: [Object],
+    },
     files: {
       type: [Object],
       default: [],
