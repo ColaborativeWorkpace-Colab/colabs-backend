@@ -1,13 +1,14 @@
 import { Request, Response } from '../types/express';
 import asyncHandler from 'express-async-handler';
-import { Freelancer, Repository, User } from '../models/';
+import { Freelancer, Repository } from '../models/';
 import { Octokit } from 'octokit';
 import * as fs from 'fs/promises';
 import { updatePermissions } from '../utils/updatePermissions';
+import { TaskStatus } from 'src/types';
 
 /**
  * Get Projects
- * @route GET /api/v1/workspaces/dashboard
+ * @route GET /api/v1/workspaces/dashboard/dashboard
  * @access Private
  */
 const getProjects = asyncHandler(async (req: Request, res: Response) => {
@@ -82,7 +83,7 @@ const getFileVersions = asyncHandler(async (req: Request, res: Response) => {
  */
 const createProject = asyncHandler(async (req: Request, res: Response) => {
   const { userId, projectName } = req.body as { userId: string; projectName: string };
-  const user = await User.findById(userId);
+  const user = await Freelancer.findById(userId);
   const client = new Octokit({
     auth: process.env.GITHUB_PERSONAL_ACCESS_TOKEN,
   });
@@ -390,6 +391,164 @@ const givePermissions = asyncHandler(async (req: Request, res: Response) => {
   throw new Error(errorMessage);
 });
 
+/**
+ * Add tasks to projects
+ * @route PUT /api/v1/workspaces/projects/:projectId/addTasks
+ * @access Private
+ */
+const addTasks = asyncHandler(async (req: Request, res: Response) => {
+  const { projectId } = req.params as { projectId: string };
+  const { newTask } = req.body as { newTask: string };
+  const project = await Repository.findById(projectId);
+
+  let errorMessage = 'Project not found';
+  let statusCode = 404;
+
+  if (project) {
+    errorMessage = 'Failed to update project';
+    statusCode = 500;
+
+    const newTaskJSON = JSON.parse(JSON.stringify(newTask));
+    const taskName = (newTaskJSON.title as string).replace(' ', '_');
+
+    newTaskJSON.id = `${project.name}-${taskName}${newTaskJSON.deadline}`;
+    const tasksUpdated = await project.updateOne({ tasks: [...project.tasks, newTaskJSON] });
+
+    if (tasksUpdated) {
+      res.json({
+        message: 'Tasks added to the project',
+      });
+
+      return;
+    }
+  }
+
+  res.status(statusCode);
+  throw new Error(errorMessage);
+});
+
+/**
+ * Edit project tasks
+ * @route PUT /api/v1/workspaces/projects/:projectId/editTasks
+ * @access Private
+ */
+const editTasks = asyncHandler(async (req: Request, res: Response) => {
+  const { projectId } = req.params as { projectId: string };
+  const { editedTask } = req.body as { editedTask: string };
+  const project = await Repository.findById(projectId);
+
+  let errorMessage = 'Project not found';
+  let statusCode = 404;
+
+  if (project) {
+    errorMessage = 'Failed to update project task';
+    statusCode = 500;
+
+    const editedTaskJSON = JSON.parse(JSON.stringify(editedTask));
+    const editedTasks = project.tasks.map((task) => {
+      if (task.id === editedTaskJSON.id) return editedTaskJSON;
+
+      return task;
+    });
+
+    const tasksUpdated = await project.updateOne({ tasks: editedTasks });
+
+    if (tasksUpdated) {
+      res.json({
+        message: 'Task edited',
+      });
+
+      return;
+    }
+  }
+
+  res.status(statusCode);
+  throw new Error(errorMessage);
+});
+
+/**
+ * Delete project tasks
+ * @route PUT /api/v1/workspaces/projects/:projectId/deleteTasks
+ * @access Private
+ */
+const deleteTasks = asyncHandler(async (req: Request, res: Response) => {
+  const { projectId } = req.params as { projectId: string };
+  const { taskId } = req.body as { taskId: string };
+  const project = await Repository.findById(projectId);
+
+  let errorMessage = 'Project not found';
+  let statusCode = 404;
+
+  if (project) {
+    errorMessage = 'Task not found';
+    statusCode = 404;
+
+    let taskExists = false;
+
+    project.tasks.forEach((task) => {
+      if (task.id === taskId) taskExists = true;
+    });
+
+    if (taskExists) {
+      errorMessage = 'Failed to remove project task';
+      statusCode = 500;
+
+      const updatedTasks = project.tasks.filter((task) => task.id !== taskId);
+      const tasksUpdated = await project.updateOne({ tasks: updatedTasks });
+
+      if (tasksUpdated) {
+        console.log(tasksUpdated);
+        res.json({
+          message: 'Task removed',
+        });
+
+        return;
+      }
+    }
+  }
+
+  res.status(statusCode);
+  throw new Error(errorMessage);
+});
+
+/**
+ * Update task status
+ * @route PUT /api/v1/workspaces/projects/:projectId/updateTaskStatus
+ * @access Private
+ */
+const updateTaskStatus = asyncHandler(async (req: Request, res: Response) => {
+  const { projectId } = req.params as { projectId: string };
+  const { taskId, status } = req.body as { taskId: string; status: TaskStatus };
+  const project = await Repository.findById(projectId);
+
+  let errorMessage = 'Project not found';
+  let statusCode = 404;
+
+  if (project) {
+    errorMessage = 'Failed to update project';
+    statusCode = 500;
+
+    const updatedTasks = project.tasks.map((task) => {
+      if (task.id === taskId) {
+        task.status = status;
+        return task;
+      } else return task;
+    });
+    const taskUpdated = await project.updateOne({ tasks: updatedTasks });
+
+    if (taskUpdated) {
+      res.json({
+        message: 'Task status changed',
+      });
+
+      return;
+    }
+  }
+
+  res.status(statusCode);
+  throw new Error(errorMessage);
+});
+
 export {
   getProjects,
   createProject,
@@ -399,4 +558,8 @@ export {
   givePermissions,
   getProjectFiles,
   getFileVersions,
+  addTasks,
+  editTasks,
+  deleteTasks,
+  updateTaskStatus,
 };
