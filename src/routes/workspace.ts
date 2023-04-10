@@ -13,6 +13,7 @@ import {
   editTasks,
   deleteTasks,
   updateTaskStatus,
+  assignTask,
 } from '../controllers/workspace';
 const router = express.Router();
 
@@ -30,5 +31,6 @@ router.route('/projects/:projectId/addTask').put(addTasks);
 router.route('/projects/:projectId/editTask').put(editTasks);
 router.route('/projects/:projectId/deleteTask').put(deleteTasks);
 router.route('/projects/:projectId/updateTaskStatus').put(updateTaskStatus);
+router.route('/projects/:projectId/assignTask').put(assignTask);
 
 export default router;
