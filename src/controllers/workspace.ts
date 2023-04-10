@@ -1,6 +1,6 @@
 import { Request, Response } from '../types/express';
 import asyncHandler from 'express-async-handler';
-import { Freelancer, Repository } from '../models/';
+import { Freelancer, Repository, Notification } from '../models/';
 import { Octokit } from 'octokit';
 import * as fs from 'fs/promises';
 import { updatePermissions } from '../utils/updatePermissions';
@@ -549,6 +549,55 @@ const updateTaskStatus = asyncHandler(async (req: Request, res: Response) => {
   throw new Error(errorMessage);
 });
 
+/**
+ * Assign task to worker
+ * @route PUT /api/v1/workspaces/projects/:projectId/assignTask
+ * @access Private
+ */
+const assignTask = asyncHandler(async (req: Request, res: Response) => {
+  const { projectId } = req.params as { projectId: string };
+  const { taskId, assignees } = req.body as { taskId: string; assignees: string };
+  const project = await Repository.findById(projectId);
+
+  let errorMessage = 'Project not found';
+  let statusCode = 404;
+
+  if (project) {
+    errorMessage = 'Failed to assign task to users';
+    statusCode = 500;
+
+    const assigneesIds = assignees.split(',');
+    const updatedAssignees = project.tasks.map((task) => {
+      if (task.id === taskId) task.assignees = assigneesIds;
+
+      return task;
+    });
+    const updatedTask = await project.updateOne({ tasks: updatedAssignees });
+
+    if (updatedTask) {
+      errorMessage = 'Notification Request Failed';
+
+      const pendingNotifications = assigneesIds.map((assigneeId: string) => {
+        return {
+          title: `Task Assigned`,
+          message: `A new task has been assigned to you in the ${project.name} workspace`,
+          userId: assigneeId,
+        };
+      });
+
+      const notification = await Notification.insertMany(pendingNotifications);
+
+      if (notification) {
+        res.json({ message: 'Task assigned' });
+        return;
+      }
+    }
+  }
+
+  res.status(statusCode);
+  throw new Error(errorMessage);
+});
+
 export {
   getProjects,
   createProject,
@@ -562,4 +611,5 @@ export {
   editTasks,
   deleteTasks,
   updateTaskStatus,
+  assignTask,
 };
