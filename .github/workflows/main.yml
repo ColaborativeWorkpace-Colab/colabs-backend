@@ -12,11 +12,13 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: '14.x'
+      - name: log secret
+        run: echo "${{ secrets.ENV_FILE }}"
+        
       - name: Create and load env vars
         run: |
           echo "${{ secrets.ENV_FILE }}" > .env
-          echo "${{ secrets.ENV_FILE }}"
-
+          
       - name: Install dependencies
         run: yarn
 
