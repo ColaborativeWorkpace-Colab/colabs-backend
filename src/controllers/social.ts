@@ -67,6 +67,7 @@ const postContent = asyncHandler(async (req: Request, res: Response) => {
     if (post) {
       res.json({
         message: 'Content Posted',
+        post,
       });
 
       return;
@@ -131,7 +132,7 @@ const commentPost = asyncHandler(async (req: Request, res: Response) => {
     errorMessage = 'Failed to comment on post';
     statusCode = 500;
 
-    const commentPosted = await post.update({ comments: [...post.comments, { userId, comment }] });
+    const commentPosted = await post.updateOne({ comments: [...post.comments, { userId, comment }] });
 
     if (commentPosted) {
       res.json({
