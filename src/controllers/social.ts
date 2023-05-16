@@ -164,7 +164,7 @@ const editPost = asyncHandler(async (req: Request, res: Response) => {
     errorMessage = 'Failed to edit post';
     statusCode = 500;
 
-    const postEdited = await post.update({
+    const postEdited = await post.updateOne({
       textContent,
       imageContent,
       tags: tags.split(','),
@@ -183,5 +183,101 @@ const editPost = asyncHandler(async (req: Request, res: Response) => {
   throw new Error(errorMessage);
 });
 
+/**
+ * Get user's connections
+ * @route GET /api/v1/social/connections/:userId
+ * @access Private
+ */
+const getUserSocialConnections = asyncHandler(async (req: Request, res: Response) => {
+  const { userId } = req.params as { userId: string };
+  const user = await User.findById(userId);
+
+  const errorMessage = 'User not found';
+  const statusCode = 404;
+
+  if (user) {
+    res.json({
+      connections: user.connections,
+    });
+
+    return;
+  }
+
+  res.status(statusCode);
+  throw new Error(errorMessage);
+});
+
+/**
+ * Add other user to the user's connections
+ * @route PUT /api/v1/social/connections/:userId/addConnection
+ * @access Private
+ */
+const addUserSocialConnections = asyncHandler(async (req: Request, res: Response) => {
+  const { userId } = req.params as { userId: string };
+  const { otherUserId } = req.body as { otherUserId: string };
+  const user = await User.findById(userId);
+
+  let errorMessage = 'User not found';
+  let statusCode = 404;
+
+  if (user) {
+    errorMessage = "Failed to add connection to the user's database entry";
+    statusCode = 500;
+    const connectionAdded = await user.updateOne({ connections: [...user.connections, otherUserId] });
+
+    if (connectionAdded) {
+      res.json({
+        message: 'User added to your connections list',
+      });
+
+      return;
+    }
+  }
+
+  res.status(statusCode);
+  throw new Error(errorMessage);
+});
+
+/**
+ * Remove other user from the user's connections
+ * @route PUT /api/v1/social/connections/:userId/removeConnection
+ * @access Private
+ */
+const removeUserSocialConnections = asyncHandler(async (req: Request, res: Response) => {
+  const { userId } = req.params as { userId: string };
+  const { otherUserId } = req.body as { otherUserId: string };
+  const user = await User.findById(userId);
+
+  let errorMessage = 'User not found';
+  let statusCode = 404;
+
+  if (user) {
+    errorMessage = "Failed to remove connection from the user's database entry";
+    statusCode = 500;
+    const updatedConnections = user.connections.filter((userConnectionId) => userConnectionId !== otherUserId);
+    const connectionRemoved = await user.updateOne({ connections: updatedConnections });
+
+    if (connectionRemoved) {
+      res.json({
+        message: 'User removed from your connections list',
+      });
+
+      return;
+    }
+  }
+
+  res.status(statusCode);
+  throw new Error(errorMessage);
+});
+
 // TODO: donate to creator
-export { getPosts, postContent, likePost, commentPost, editPost };
+export {
+  getPosts,
+  postContent,
+  likePost,
+  commentPost,
+  editPost,
+  getUserSocialConnections,
+  addUserSocialConnections,
+  removeUserSocialConnections,
+};

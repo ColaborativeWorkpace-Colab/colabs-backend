@@ -25,6 +25,7 @@ export interface IUser {
   googleId: string;
   emailVerified: boolean;
   imageUrl: string;
+  connections: string[];
 }
 
 export interface IFreelance extends IUser {

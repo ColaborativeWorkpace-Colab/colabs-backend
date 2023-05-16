@@ -41,6 +41,9 @@ const UserSchema: Schema<IUserDocument, IUserModel> = new Schema(
       type: Boolean,
       default: false,
     },
+    connections: {
+      type: [String],
+    },
     imageUrl: String,
     googleId: String,
     emailVerified: Boolean,

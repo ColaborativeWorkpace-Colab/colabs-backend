@@ -49,6 +49,9 @@ router.route('/request').post(requestValidations.submitRequest, parseValidationE
 router.route('/request/self').get(protect, getAllRequestSelf);
 router.route('/request/self/:id').get(protect, getRequestByIdSelf).delete(protect, deleteRequestByIdSelf);
 
+// Connection Routes
+router.route('/');
+
 // Admin routes
 router.route('/').get(protect, admin, getUsers);
 router.route('/request').get(protect, admin, getAllRequestOthers);
