@@ -1,14 +1,16 @@
 import { NextFunction, Request, Response } from '../types/express';
 import asyncHandler from 'express-async-handler';
-import { User, Freelancer, Employer } from '../models/';
+import { Employer, Freelancer, Request as RequestModel } from '../models/';
 import generateToken from '../utils/generateToken';
 import passport from 'passport';
 import { appEmail, appURLDev, jwtSecret, transport } from '../config';
-import { verifyEmailFormat } from '../utils/mailFormats';
+import { forgotPasswordFormat, verifyEmailFormat } from '../utils/mailFormats';
 import Token from '../models/Token';
 import jwt, { Secret } from 'jsonwebtoken';
 import httpStatus from 'http-status';
-import { Decoded, IUserDocument, TokenTypes } from '../types';
+import { Decoded, TokenTypes } from '../types';
+import { UserDiscriminators, findTypeofUser } from '../utils/finder';
+import { RequestDocs, RequestStatus, RequestType } from '../types/request';
 /**
  * Authenticate user and get token
  * @route POST /api/users/login
@@ -16,11 +18,9 @@ import { Decoded, IUserDocument, TokenTypes } from '../types';
  */
 const authUser = asyncHandler(async (req: Request, res: Response) => {
   const { email, password } = req.body as { email: string; password: string };
-  const { type } = req.query as { type: string };
-
-  let user;
-  if (type === 'freelancer') user = await Freelancer.authUser(password, email);
-  if (type === 'employer') user = await Employer.authUser(password, email);
+  const { type } = req.query as { type: UserDiscriminators };
+  const TargetUser = findTypeofUser(type);
+  const user = await TargetUser.authUser(password, email);
 
   res.send(user);
 });
@@ -32,31 +32,20 @@ const authUser = asyncHandler(async (req: Request, res: Response) => {
  */
 const registerUser = asyncHandler(async (req: Request, res: Response) => {
   const { firstName, lastName, email, password } = req.body;
-  const { type } = req.query as { type: string };
-
-  let userExists;
-  if (type === 'freelancer') userExists = (await Freelancer.findOne({ email })) as IUserDocument;
-  if (type === 'employer') userExists = (await Employer.findOne({ email })) as IUserDocument;
+  const { type } = req.query as { type: UserDiscriminators };
+  const TargetUser = findTypeofUser(type);
+  const userExists = await TargetUser.findOne({ email });
 
   if (userExists) {
     res.status(400);
     throw new Error('User already exists with this email');
   }
-  let user;
-  if (type === 'freelancer')
-    user = (await Freelancer.create({
-      firstName,
-      lastName,
-      email,
-      password,
-    })) as IUserDocument;
-  if (type === 'employer')
-    user = (await Employer.create({
-      firstName,
-      lastName,
-      email,
-      password,
-    })) as IUserDocument;
+  const user = new TargetUser({
+    firstName,
+    lastName,
+    email,
+    password,
+  });
 
   if (user) {
     const emailToken = await Token.create({
@@ -65,7 +54,7 @@ const registerUser = asyncHandler(async (req: Request, res: Response) => {
       user: user._id,
       type: TokenTypes.EMAIL_VERIFY,
     });
-    const link = `${appURLDev}/api/v1/users/signup/verify-email/?token=${emailToken.token}`;
+    const link = `${appURLDev}/api/v1/users/signup/verify-email/?type=${type}?token=${emailToken.token}`;
     await transport.sendMail({
       from: appEmail as string,
       to: user.email,
@@ -88,14 +77,13 @@ const registerUser = asyncHandler(async (req: Request, res: Response) => {
  * @access Private
  */
 const getUserProfile = asyncHandler(async (req: Request, res: Response) => {
-  const user = await User.findById(req.user?._id);
+  const type = req.user?.type as UserDiscriminators;
+  const TargetUser = findTypeofUser(type);
+  const user = await TargetUser.findById(req.user?._id);
 
   if (user) {
     res.json({
-      _id: user._id,
-      firstName: user.firstName,
-      email: user.email,
-      isAdmin: user.isAdmin,
+      Data: user.cleanUser(),
     });
   } else {
     res.status(404);
@@ -109,10 +97,8 @@ const getUserProfile = asyncHandler(async (req: Request, res: Response) => {
  * @access Private
  */
 const updateUserSelf = asyncHandler(async (req: Request, res: Response) => {
-  let user;
-  if (req.user?.__t === 'Freelancer') user = await Freelancer.findById(req.user?._id);
-  if (req.user?.__t === 'Employer') user = await Employer.findById(req.user?._id);
-
+  const TargetUser = findTypeofUser(req.user?.type as UserDiscriminators);
+  const user = await TargetUser.findById(req.user?._id);
   if (user) {
     user.firstName = req.body.firstName || user.firstName;
     user.lastName = req.body.lastName || user.lastName;
@@ -135,8 +121,13 @@ const updateUserSelf = asyncHandler(async (req: Request, res: Response) => {
  * @access Private/Admin
  */
 const getUsers = asyncHandler(async (_req: Request, res: Response) => {
-  const users = await User.find({});
-  res.json(users);
+  const freelancers = await Freelancer.find({});
+  const employers = await Employer.find({});
+
+  // TODO: Add pagination and caching
+  res.json({
+    users: [...freelancers, ...employers],
+  });
 });
 
 /**
@@ -145,9 +136,9 @@ const getUsers = asyncHandler(async (_req: Request, res: Response) => {
  * @access Private/Admin
  */
 const deleteUser = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params as { id: string };
-
-  const user = await User.findById(id);
+  const { id, type } = req.params as { id: string; type: UserDiscriminators };
+  const TargetUser = findTypeofUser(type);
+  const user = await TargetUser.findById(id);
   if (user) {
     await user.remove();
     res.json({ message: 'User removed' });
@@ -163,11 +154,12 @@ const deleteUser = asyncHandler(async (req: Request, res: Response) => {
  * @access Private/Admin
  */
 const getUserById = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params as { id: string };
-  const user = await User.findById(id).select('-password');
+  const { id, type } = req.params as { id: string; type: UserDiscriminators };
+  const TargetUser = findTypeofUser(type);
+  const user = await TargetUser.findById(id);
 
   if (user) {
-    res.json(user);
+    res.json({ user: user.cleanUser() });
   } else {
     res.status(404);
     throw new Error('User not found');
@@ -180,8 +172,9 @@ const getUserById = asyncHandler(async (req: Request, res: Response) => {
  * @access Private/Admin
  */
 const updateUserOther = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params as { id: string };
-  const user = await User.findById(id);
+  const { id, type } = req.params as { id: string; type: UserDiscriminators };
+  const TargetUser = findTypeofUser(type);
+  const user = await TargetUser.findById(id);
 
   if (user) {
     user.firstName = req.body.firstName || user.firstName;
@@ -246,7 +239,7 @@ const authWithGoogleRedirect = asyncHandler(async (req: Request, res: Response) 
  * @access Public
  */
 const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
-  const { token } = req.query;
+  const { token, type } = req.query as { token: string; type: UserDiscriminators };
   const secret: Secret = jwtSecret;
   const decodedData = jwt.verify(token as string, secret) as unknown as Decoded;
   const tokenExist = await Token.findOne({
@@ -257,7 +250,8 @@ const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
       message: 'Token not found',
     });
   } else {
-    const user = await Freelancer.findOne({
+    const TargetUser = findTypeofUser(type);
+    const user = await TargetUser.findOne({
       email: decodedData.id.split('-')[1],
     });
     if (!user) {
@@ -276,7 +270,7 @@ const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
         type: TokenTypes.ACCESS,
         expires: '30d',
       });
-      res.redirect(`http://localhost:3000/signup/verification-success/?token=${accessToken.token}`);
+      res.redirect(`http://localhost:3000/signup/verification-success/?type=${type}?token=${accessToken.token}`);
     }
   }
 });
@@ -322,6 +316,134 @@ const authWithGithubRedirect = asyncHandler(async (req: Request, res: Response) 
   res.redirect(`/signup-success/token=${req.user?.token}`);
 });
 
+/**
+ * Forgot password
+ * @route POST /api/users/forgot-password
+ * @access Public
+ */
+const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
+  const { email } = req.body;
+  const { type } = req.query as { type: UserDiscriminators };
+  const TargetUser = findTypeofUser(type);
+  const user = await TargetUser.findOne({ email });
+  if (!user) res.status(httpStatus.NOT_FOUND).send({ message: 'User not found' });
+  else {
+    const token = generateToken(user._id);
+    const link = `${appURLDev}/reset-password/?token=${token}`;
+    await transport.sendMail({
+      from: appEmail,
+      to: email,
+      subject: 'Password Reset',
+      html: forgotPasswordFormat(link),
+    });
+    res.send({
+      message: 'Password reset link sent to your email',
+    });
+  }
+});
+
+// TODO: need refactoring
+
+/**
+ * Request account verification
+ * @route POST /api/users/request
+ * @access Public
+ */
+const submitRequest = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?._id;
+  const { docs, type } = req.body as { docs: RequestDocs[]; type: RequestType };
+
+  await RequestModel.create({
+    user: userId,
+    docs: [...docs],
+    status: RequestStatus.INREVIEW,
+    type,
+  });
+
+  res.status(httpStatus.CREATED).send({
+    message: 'Request created successfully',
+  });
+});
+
+/**
+ * Get all pending requests
+ * @route POST /api/users/request
+ * @access Private/Admin
+ */
+const getAllRequestOthers = asyncHandler(async (_req: Request, res: Response) => {
+  // TODO: add pagination
+  const requests = await RequestModel.find({ status: RequestStatus.INREVIEW });
+  res.status(httpStatus.OK).send({ requests });
+});
+
+/**
+ * Get all my requests
+ * @route POST /api/users/request
+ * @access Private
+ */
+const getAllRequestSelf = asyncHandler(async (_req: Request, res: Response) => {
+  // TODO: add pagination
+  const requests = await RequestModel.find({ user: _req.user?._id });
+  res.status(httpStatus.OK).send({ requests });
+});
+
+/**
+ * Get request by id
+ * @route get /api/users/request/:id
+ * @access Private/Admin
+ */
+const getRequestByIdOthers = asyncHandler(async (_req: Request, res: Response) => {
+  const { id } = _req.params;
+  const request = await RequestModel.findById(id);
+  if (!request) res.status(httpStatus.NOT_FOUND).send({ message: 'Request not found' });
+  res.status(httpStatus.OK).send({ request });
+});
+
+/**
+ * Get request by id
+ * @route get /api/users/request/:id
+ * @access Private/Admin
+ */
+const getRequestByIdSelf = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const request = await RequestModel.findOne({ user: req.user?._id, _id: id });
+  if (!request) res.status(httpStatus.NOT_FOUND).send({ message: 'Request not found' });
+  res.status(httpStatus.OK).send({ request });
+});
+
+/**
+ * Get request by id
+ * @route get /api/users/request/:id
+ * @access Private/Admin
+ */
+const deleteRequestByIdSelf = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const existRequest = await RequestModel.findOne({ user: req.user?._id, _id: id });
+  if (!existRequest) res.status(httpStatus.NOT_FOUND).send({ message: 'Request not found' });
+  await RequestModel.deleteOne({ user: req.user?._id, _id: id });
+  res.status(httpStatus.OK).send({ message: 'Request deleted successfully' });
+});
+
+/**
+ * Update request status
+ * @route PUT /api/users/request/:id
+ * @access Private/Admin
+ * @param {string} id - request id
+ */
+const updateRequest = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { action } = req.query as { action: RequestStatus.APPROVED | RequestStatus.REJECTED };
+  const request = await RequestModel.findById(id);
+  if (!request) res.status(httpStatus.NOT_FOUND).send({ message: 'Request not found' });
+  else {
+    if (request?.status === RequestStatus.APPROVED)
+      res.status(httpStatus.BAD_REQUEST).send({ message: 'Request already approved' });
+    request.status = action;
+    await request.save();
+    res.status(httpStatus.OK).send({ message: 'Request updated successfully', request });
+  }
+});
+
 export {
   authUser,
   getUserProfile,
@@ -338,4 +460,12 @@ export {
   authWithGithub,
   authWithGithubCallback,
   authWithGithubRedirect,
+  forgotPassword,
+  submitRequest,
+  getAllRequestOthers,
+  updateRequest,
+  getRequestByIdOthers,
+  getAllRequestSelf,
+  getRequestByIdSelf,
+  deleteRequestByIdSelf,
 };

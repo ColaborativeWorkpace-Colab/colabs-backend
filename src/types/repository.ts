@@ -5,6 +5,7 @@ import { Model, Document } from 'mongoose';
  */
 export interface IRepository {
   name: string;
+  tasks: Task[];
   files: object[];
   owner: string;
 }
@@ -18,3 +19,18 @@ export interface IRepositoryDocument extends IRepository, Document {
 }
 
 export interface IRepositoryModel extends Model<IRepositoryDocument> {}
+
+export type Task = {
+  id: string;
+  title: string;
+  description?: string;
+  assignees?: string[];
+  deadline: string;
+  status: TaskStatus;
+};
+
+export enum TaskStatus {
+  Queued = 'Queued',
+  Ongoing = 'Ongoing',
+  Complete = 'Complete',
+}

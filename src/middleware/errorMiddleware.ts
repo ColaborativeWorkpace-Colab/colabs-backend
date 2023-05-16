@@ -1,6 +1,7 @@
 import { nodeEnv } from '../config';
 import { NextFunction, Request, Response } from 'express';
 import { validationResult } from 'express-validator';
+import httpStatus from 'http-status';
 
 const notFound = (req: Request, res: Response, next: NextFunction) => {
   const error = new Error(`Not found - ${req.originalUrl}`);
@@ -25,7 +26,7 @@ const parseValidationError = (req: Request, res: Response, next: NextFunction) =
     return next();
   }
 
-  res.send({
+  res.status(httpStatus.UNPROCESSABLE_ENTITY).send({
     errors: validationErrors.array(),
   });
 };

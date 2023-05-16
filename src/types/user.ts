@@ -8,6 +8,11 @@ export type Tag = {
   score: number;
 };
 
+export enum UserType {
+  FREELANCER = 'freelancer',
+  EMPLOYER = 'employer',
+}
+
 // Types
 export interface IUser {
   firstName: string;

@@ -9,6 +9,11 @@ import {
   givePermissions,
   getProjectFiles,
   getFileVersions,
+  addTasks,
+  editTasks,
+  deleteTasks,
+  updateTaskStatus,
+  assignTask,
 } from '../controllers/workspace';
 const router = express.Router();
 
@@ -21,5 +26,11 @@ router.route('/projects/:projectId/:fileRef').get(getFileVersions);
 router.route('/projects/:projectId/delete').delete(deleteProject);
 router.route('/projects/:projectId/removeFiles').put(deleteProjectFiles);
 router.route('/projects/:projectId/givePermission').put(givePermissions);
+
+router.route('/projects/:projectId/addTask').put(addTasks);
+router.route('/projects/:projectId/editTask').put(editTasks);
+router.route('/projects/:projectId/deleteTask').put(deleteTasks);
+router.route('/projects/:projectId/updateTaskStatus').put(updateTaskStatus);
+router.route('/projects/:projectId/assignTask').put(assignTask);
 
 export default router;
