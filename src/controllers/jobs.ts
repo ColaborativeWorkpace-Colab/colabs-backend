@@ -3,10 +3,9 @@ import asyncHandler from 'express-async-handler';
 import { Job, Freelancer, Notification, Employer } from '../models';
 import { Octokit } from 'octokit';
 import { getFilesfromRepo } from '../utils/download';
+import { JobStatus } from '../types';
 
-// Note: A job has four statuses: Pending, Completed, Active, Ready, Available
-// NOTE: When manipulating a job info, only the owner has access
-// NOTE: A job has five statuses: Pending, Completed, Active, Ready, Available
+// NOTE: When manipulating a job info, only the owner has accessPending, Completed, Active, Ready, Available
 /**
  * Get Jobs
  * @route GET /api/v1/jobs
@@ -14,7 +13,7 @@ import { getFilesfromRepo } from '../utils/download';
  */
 const getJobs = asyncHandler(async (req: Request, res: Response) => {
   const { userId } = req.query as { userId: string };
-  const jobs = await Job.find({ status: 'Available' });
+  const jobs = await Job.find({ status: JobStatus.Available });
   const user = await Freelancer.findById(userId);
 
   if (user) {
@@ -84,7 +83,7 @@ const deleteJob = asyncHandler(async (req: Request, res: Response) => {
   if (job) {
     errorMessage = 'Job is currently being worked on';
 
-    if (job.status === 'Available' || job.status === 'Pending' || job.status === 'Completed') {
+    if (job.status === JobStatus.Available || job.status === JobStatus.Pending || job.status === JobStatus.Completed) {
       res.json({
         message: `${job?.title} is successfully deleted.`,
       });
@@ -105,7 +104,7 @@ const completeJob = asyncHandler(async (req: Request, res: Response) => {
   // TODO: Only provide the job file assets to the recruiter when payment is completed
   // TODO: Add payment
   // TODO: Implement upgrade points and update user profile
-  const job = await Job.findByIdAndUpdate(jobId, { status: 'Completed' });
+  const job = await Job.findByIdAndUpdate(jobId, { status: JobStatus.Completed });
   let errorMessage = 'Job not found';
 
   if (job) {
@@ -155,7 +154,7 @@ const applyJob = asyncHandler(async (req: Request, res: Response) => {
     });
   }).then(async () => {
     if (unverifiedWorkers.length === 0) {
-      const job = await Job.findByIdAndUpdate(jobId, { workers, status: 'Active' });
+      const job = await Job.findByIdAndUpdate(jobId, { workers, status: JobStatus.Active });
 
       if (job)
         res.json({
@@ -224,7 +223,7 @@ const addTeamMembers = asyncHandler(async (req: Request, res: Response) => {
  */
 const jobReady = asyncHandler(async (req: Request, res: Response) => {
   const { jobId } = req.params as { jobId: string; workerId: string; recruiterId: string };
-  const job = await Job.findByIdAndUpdate(jobId, { status: 'Ready' });
+  const job = await Job.findByIdAndUpdate(jobId, { status: JobStatus.Ready });
   let errorMessage = 'Job not found';
 
   if (job) {
