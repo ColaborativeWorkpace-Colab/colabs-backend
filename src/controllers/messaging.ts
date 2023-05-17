@@ -13,16 +13,10 @@ const connectedUsers: { [userId: string]: string } = {};
 const messagingSocket = (socket: Socket<any>) => {
   socket.on('connect-user', async (userId: string) => {
     if (!connectedUsers[userId]) connectedUsers[userId] = socket.id;
-
-    // console.log(`${userId} connected`);
-    // console.log(connectedUsers);
   });
 
   socket.on('disconnect-user', (disconnectingUserId: string) => {
     delete connectedUsers[disconnectingUserId];
-
-    // console.log(`${disconnectingUserId} disconnected`);
-    // console.log(connectedUsers);
   });
 
   socket.on(
@@ -35,7 +29,7 @@ const messagingSocket = (socket: Socket<any>) => {
         const chat = await Chat.findById(data.chatId);
 
         if (chat) {
-          await chat.updateOne({
+          const messageStored = await chat.updateOne({
             totalMessages: [
               ...chat.totalMessages,
               { sender: data.senderId, message: data.message, timestamp: Date.now() },
@@ -43,20 +37,18 @@ const messagingSocket = (socket: Socket<any>) => {
             inbox: [...chat.inbox, { sender: data.senderId, message: data.message, timestamp: Date.now() }],
           });
 
-          // if (!messageStored) console.error('Failed to store message');
-          // TODO: Handle errors
+          if (!messageStored)
+            socket.to(connectedUsers[data.senderId]).emit('message_store_error', 'Failed to store message');
         }
       } else {
-        await Chat.create({
+        const chatCreated = await Chat.create({
           type: ChatType.Private,
           members: [data.senderId, data.receiverId],
           totalMessages: [{ sender: data.senderId, message: data.message, timestamp: Date.now() }],
           inbox: [{ sender: data.senderId, message: data.message, timestamp: Date.now() }],
         });
 
-        // if (!chat) console.error('Failed to create chat');
-        // else console.info('Chat stored');
-        // TODO: Handle errors
+        if (!chatCreated) socket.to(connectedUsers[data.senderId]).emit('chat_error', 'Failed to create chat');
       }
     },
   );
@@ -70,7 +62,7 @@ const messagingSocket = (socket: Socket<any>) => {
         const chat = await Chat.findById(data.groupChatId);
 
         if (chat) {
-          await chat.updateOne({
+          const messageStored = await chat.updateOne({
             totalMessages: [
               ...chat.totalMessages,
               { sender: data.senderId, message: data.message, timestamp: Date.now() },
@@ -78,20 +70,19 @@ const messagingSocket = (socket: Socket<any>) => {
             inbox: [...chat.inbox, { sender: data.senderId, message: data.message, timestamp: Date.now() }],
           });
 
-          // if (!messageStored) console.error('Failed to store message');
-          // TODO: Handle errors
+          if (!messageStored)
+            socket.to(connectedUsers[data.senderId]).emit('message_store_error', 'Failed to store message');
         }
       } else {
-        await Chat.create({
+        const chatCreated = await Chat.create({
           type: ChatType.Group,
           members: data.members?.split(','),
           totalMessages: [{ sender: data.senderId, message: data.message, timestamp: Date.now() }],
           inbox: [{ sender: data.senderId, message: data.message, timestamp: Date.now() }],
         });
 
-        // if (!chat) console.error('Failed to create group chat');
-        // else console.info('Chat stored');
-        // TODO: Handle errors
+        if (!chatCreated)
+          socket.to(connectedUsers[data.senderId]).emit('group_chat_error', 'Failed to create group chat');
       }
     },
   );

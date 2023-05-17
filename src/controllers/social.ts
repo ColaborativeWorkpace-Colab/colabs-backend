@@ -148,7 +148,7 @@ const commentPost = asyncHandler(async (req: Request, res: Response) => {
 });
 
 /**
- * Comment on Post
+ * Edit Post
  * @route PUt /api/v1/social/:userId/:postId/edit
  * @access Public
  */
