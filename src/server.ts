@@ -82,3 +82,5 @@ app.use(errorHandler);
 httpServer.listen(PORT, () => {
   console.log(`Server running in ${nodeEnv} mode on port ${PORT}`);
 });
+
+export { chatIo };
