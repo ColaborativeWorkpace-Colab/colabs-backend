@@ -47,6 +47,7 @@ const messagingSocket = (socket: Socket<any>) => {
                 timestamp: Date.parse(data.timeStamp),
               },
             ],
+            // TODO: Only if user is not online
             inbox: [...chat.inbox, data.messageId],
           });
 
@@ -65,6 +66,7 @@ const messagingSocket = (socket: Socket<any>) => {
               timestamp: Date.parse(data.timeStamp),
             },
           ],
+          // TODO: Only if user is not online
           inbox: [data.messageId],
         });
 
@@ -104,6 +106,7 @@ const messagingSocket = (socket: Socket<any>) => {
                 timestamp: Date.parse(data.timeStamp),
               },
             ],
+            // TODO: Only if user is not online
             inbox: [...chat.inbox, data.messageId],
           });
 
@@ -122,6 +125,7 @@ const messagingSocket = (socket: Socket<any>) => {
               timestamp: Date.parse(data.timeStamp),
             },
           ],
+          // TODO: Only if user is not online
           inbox: [data.messageId],
         });
 
@@ -134,6 +138,16 @@ const messagingSocket = (socket: Socket<any>) => {
       }
     },
   );
+
+  socket.on('mark-read', async (chatId: string) => {
+    const chat = await Chat.findById(chatId);
+
+    if (chat) {
+      await chat.updateOne({
+        inbox: [],
+      });
+    }
+  });
 };
 
 /**
