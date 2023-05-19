@@ -8,18 +8,17 @@ import { JobStatus } from '../types';
 // NOTE: When manipulating a job info, only the owner has accessPending, Completed, Active, Ready, Available
 /**
  * Get Jobs
- * @route GET /api/v1/jobs
+ * @route GET /api/v1/jobs/:userId
  * @access Public
  */
 const getJobs = asyncHandler(async (req: Request, res: Response) => {
-  const { userId } = req.query as { userId: string };
+  const { userId } = req.params as { userId: string };
   const jobs = await Job.find({ status: JobStatus.Available });
   const user = await Freelancer.findById(userId);
 
   if (user) {
     res.json({
       jobs,
-      skills: user.skills,
     });
   } else {
     res.status(404);

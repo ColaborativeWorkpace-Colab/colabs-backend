@@ -29,6 +29,10 @@ const jobSchema: Schema<IJobDocument, IJobModel> = new mongoose.Schema(
       type: String,
       required: true,
     },
+    paymentVerified: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true, // Automatically create createdAt timestamp

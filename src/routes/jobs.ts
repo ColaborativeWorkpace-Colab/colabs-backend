@@ -11,7 +11,7 @@ import {
 } from '../controllers/jobs';
 const router = express.Router();
 
-router.route('/').get(getJobs).post(postJob);
+router.route('/:userId').get(getJobs).post(postJob);
 
 // Actions on a single job
 router.route('/:jobId/apply').put(applyJob);

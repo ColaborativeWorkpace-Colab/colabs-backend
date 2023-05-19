@@ -11,6 +11,7 @@ export interface IJob {
   requirements: string[];
   status: string;
   owner: string;
+  paymentVerified: boolean;
 }
 
 export interface ICleanJob extends IJob {
