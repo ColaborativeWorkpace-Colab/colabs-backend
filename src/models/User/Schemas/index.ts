@@ -30,6 +30,15 @@ const UserSchema: Schema<IUserDocument, IUserModel> = new Schema(
       type: String,
       required: true,
     },
+    bio: {
+      type: String,
+    },
+    occupation: {
+      type: String,
+    },
+    location: {
+      type: String,
+    },
     tags: {
       type: [Object],
     },

@@ -17,7 +17,7 @@ import {
 } from '../controllers/workspace';
 const router = express.Router();
 
-router.route('/dashboard').get(getProjects);
+router.route('/dashboard/:userId').get(getProjects);
 router.route('/projects').post(createProject);
 
 router.route('/projects/:projectId/uploadFiles').put(fileUploadMulter.any(), uploadProjectFiles);

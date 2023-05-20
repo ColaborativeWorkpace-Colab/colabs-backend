@@ -19,6 +19,9 @@ export interface IUser {
   lastName: string;
   email: string;
   password: string;
+  bio: string;
+  occupation: string;
+  location: string;
   tags: [Tag];
   isAdmin: boolean;
   isRegulator: boolean;
