@@ -14,7 +14,7 @@ const router = express.Router();
 router.route('/:userId').get(getJobs).post(postJob);
 
 // Actions on a single job
-router.route('/:jobId/apply').put(applyJob);
+router.route('/:jobId/apply').post(applyJob);
 router.route('/:jobId/addMembers').put(addTeamMembers);
 router.route('/:jobId/ready').put(jobReady);
 router.route('/:jobId/complete').put(completeJob);
