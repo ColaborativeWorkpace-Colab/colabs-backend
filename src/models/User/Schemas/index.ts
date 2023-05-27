@@ -53,6 +53,13 @@ const UserSchema: Schema<IUserDocument, IUserModel> = new Schema(
     connections: {
       type: [String],
     },
+    isOnline: {
+      type: Boolean,
+      default: false,
+    },
+    lastSeen: {
+      type: Date,
+    },
     imageUrl: String,
     googleId: String,
     emailVerified: Boolean,

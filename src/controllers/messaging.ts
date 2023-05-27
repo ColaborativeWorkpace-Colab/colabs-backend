@@ -1,7 +1,7 @@
 import { Request, Response } from '../types/express';
 import asyncHandler from 'express-async-handler';
 import { Socket } from 'socket.io';
-import { Chat } from '../models';
+import { Chat, User } from '../models';
 import { ChatType } from '../types';
 import { chatIo } from '../server';
 
@@ -14,9 +14,15 @@ const connectedUsers: { [userId: string]: string } = {};
 const messagingSocket = (socket: Socket<any>) => {
   socket.on('connect-user', async (userId: string) => {
     if (!connectedUsers[userId]) connectedUsers[userId] = socket.id;
+
+    await User.findByIdAndUpdate(userId, { isOnline: true });
   });
 
-  socket.on('disconnect-user', (disconnectingUserId: string) => {
+  socket.on('disconnect-user', async (disconnectingUserId: string) => {
+    const timeStamp = Date.now();
+    const user = await User.findByIdAndUpdate(disconnectingUserId, { isOnline: false, lastSeen: timeStamp });
+
+    if (user) chatIo.sockets.to(connectedUsers[disconnectingUserId]).emit('is_not_online', timeStamp);
     delete connectedUsers[disconnectingUserId];
   });
 
@@ -170,4 +176,37 @@ const getMessages = asyncHandler(async (req: Request, res: Response) => {
   }
 });
 
-export { messagingSocket, getMessages };
+/**
+ * Get Last seen data
+ * @route POST /api/v1/messaging/lastSeen
+ * @access Private
+ */
+const getLastSeen = asyncHandler(async (req: Request, res: Response) => {
+  const { userIds } = req.body as { userIds: string };
+  const users = userIds.split(',');
+
+  await new Promise((resolve, _reject) => {
+    const lastSeenStatuses: { userId: string; isOnline?: boolean; lastSeen?: Date }[] = [];
+
+    users.forEach(async (userId, index) => {
+      if (userId.length !== 0) {
+        const user = await User.findById(userId);
+        const userJson = {
+          userId,
+          userName: `${user?.firstName} ${user?.lastName}`,
+          isOnline: user?.isOnline,
+          lastSeen: user?.lastSeen,
+        };
+
+        lastSeenStatuses.push(userJson);
+      }
+
+      if (index === users.length - 2) resolve(lastSeenStatuses);
+    });
+  }).then((lastSeenStatuses) => {
+    console.log(lastSeenStatuses);
+    res.json(lastSeenStatuses);
+  });
+});
+
+export { messagingSocket, getMessages, getLastSeen };

@@ -29,6 +29,8 @@ export interface IUser {
   emailVerified: boolean;
   imageUrl: string;
   connections: string[];
+  lastSeen: Date;
+  isOnline: boolean;
 }
 
 export interface IFreelance extends IUser {

@@ -1,6 +1,7 @@
 import express from 'express';
-import { getMessages } from '../controllers/messaging';
+import { getLastSeen, getMessages } from '../controllers/messaging';
 const router = express.Router();
 
 router.route('/:userId').get(getMessages);
+router.route('/lastSeen').post(getLastSeen);
 export default router;
