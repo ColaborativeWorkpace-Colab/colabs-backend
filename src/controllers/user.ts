@@ -3,7 +3,7 @@ import asyncHandler from 'express-async-handler';
 import { Employer, Freelancer, Request as RequestModel } from '../models/';
 import generateToken from '../utils/generateToken';
 import passport from 'passport';
-import { appEmail, appURLDev, jwtSecret, transport } from '../config';
+import { appEmail, backendURL, frontendURL, jwtSecret, transport } from '../config';
 import { forgotPasswordFormat, verifyEmailFormat } from '../utils/mailFormats';
 import Token from '../models/Token';
 import jwt, { Secret } from 'jsonwebtoken';
@@ -54,7 +54,7 @@ const registerUser = asyncHandler(async (req: Request, res: Response) => {
       user: user._id,
       type: TokenTypes.EMAIL_VERIFY,
     });
-    const link = `${appURLDev}/api/v1/users/signup/verify-email/?type=${type}?token=${emailToken.token}`;
+    const link = `${backendURL}/api/v1/users/signup/verify-email/?type=${type}&token=${emailToken.token}`;
     await transport.sendMail({
       from: appEmail as string,
       to: user.email,
@@ -229,8 +229,8 @@ const authWithGoogleCallback = asyncHandler(async (req: Request, res: Response, 
  * @access Public
  */
 const authWithGoogleRedirect = asyncHandler(async (req: Request, res: Response) => {
-  res.cookie('access-token', req.user?.token);
-  res.redirect(`/signup-success/token=${req.user?.token}`);
+  res.cookie('access-token', req.user?.token); // todo change this to match frontend
+  res.redirect(`${frontendURL}/signup-success/?type=${req.user?.type}&token=${req.user?.token}`);
 });
 
 /**
@@ -269,8 +269,8 @@ const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
         token: generateToken(user._id),
         type: TokenTypes.ACCESS,
         expires: '30d',
-      });
-      res.redirect(`http://localhost:3000/signup/verification-success/?type=${type}?token=${accessToken.token}`);
+      }); // todo change this to match frontend
+      res.redirect(`${frontendURL}/signup-success/?type=${type}&token=${accessToken.token}`);
     }
   }
 });
@@ -312,8 +312,8 @@ const authWithGithubCallback = asyncHandler(async (req: Request, res: Response, 
  * @access Public
  */
 const authWithGithubRedirect = asyncHandler(async (req: Request, res: Response) => {
-  res.cookie('access-token', req.user?.token);
-  res.redirect(`/signup-success/token=${req.user?.token}`);
+  res.cookie('access-token', req.user?.token); // todo change this to match frontend
+  res.redirect(`${frontendURL}/signup-success/?type=${req.user?.type}&token=${req.user?.token}`);
 });
 
 /**
@@ -329,7 +329,7 @@ const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
   if (!user) res.status(httpStatus.NOT_FOUND).send({ message: 'User not found' });
   else {
     const token = generateToken(user._id);
-    const link = `${appURLDev}/reset-password/?token=${token}`;
+    const link = `${backendURL}/reset-password/?token=${token}`;
     await transport.sendMail({
       from: appEmail,
       to: email,
