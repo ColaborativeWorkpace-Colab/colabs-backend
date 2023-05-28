@@ -3,7 +3,7 @@ import asyncHandler from 'express-async-handler';
 import { Socket } from 'socket.io';
 import { Chat, User } from '../models';
 import { ChatType } from '../types';
-import { chatIo } from '../server';
+import { chatIo } from '..';
 
 const connectedUsers: { [userId: string]: string } = {};
 
