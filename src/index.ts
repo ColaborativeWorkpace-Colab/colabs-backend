@@ -24,6 +24,7 @@ import morgan from 'morgan';
 import { nodeEnv } from './config';
 import passport from 'passport';
 import envExample from './utils/envExample';
+dotenv.config();
 
 const PORT = process.env.PORT || 5000;
 
@@ -53,8 +54,6 @@ app.use(
 
 // Morgan logging
 app.use(morgan('dev'));
-
-dotenv.config();
 
 connectDB();
 
