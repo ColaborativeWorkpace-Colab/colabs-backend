@@ -8,11 +8,11 @@ import { TaskStatus } from 'src/types';
 
 /**
  * Get Projects
- * @route GET /api/v1/workspaces/dashboard/dashboard
+ * @route GET /api/v1/workspaces/dashboard/:userId
  * @access Private
  */
 const getProjects = asyncHandler(async (req: Request, res: Response) => {
-  const { userId } = req.query as { userId: string };
+  const { userId } = req.params as { userId: string };
   const repositories = await Repository.find({ owner: userId });
 
   if (repositories) {

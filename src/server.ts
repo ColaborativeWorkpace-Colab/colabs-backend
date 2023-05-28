@@ -6,6 +6,11 @@ import { notFound, errorHandler } from './middleware/errorMiddleware';
 import passportConfig from './config/passport';
 import session from 'express-session';
 
+// Messaging
+import { createServer } from 'http';
+import { Server as MessagingServer } from 'socket.io';
+import { messagingSocket } from './controllers/messaging';
+
 // Routes
 import userRoutes from './routes/user';
 import uploadRoutes from './routes/upload';
@@ -13,6 +18,7 @@ import workspaceRoutes from './routes/workspace';
 import jobRoutes from './routes/jobs';
 import profileRoutes from './routes/profile';
 import socialRoutes from './routes/social';
+import messagingRoutes from './routes/messaging';
 
 import morgan from 'morgan';
 import { nodeEnv } from './config';
@@ -28,6 +34,12 @@ envExample();
 passportConfig(passport);
 
 const app = express();
+const httpServer = createServer(app);
+const chatIo = new MessagingServer(httpServer, {
+  cors: {
+    origin: '*',
+  },
+});
 
 // Middleware to accept JSON in body
 app.use(express.json());
@@ -46,6 +58,8 @@ dotenv.config();
 
 connectDB();
 
+chatIo.on('connection', messagingSocket);
+
 app.get('/', (_req: Request, res: Response) => {
   res.send('API IS RUNNING...');
 });
@@ -56,6 +70,7 @@ app.use('/api/v1/workspaces', workspaceRoutes);
 app.use('/api/v1/jobs', jobRoutes);
 app.use('/api/v1/profile', profileRoutes);
 app.use('/api/v1/social', socialRoutes);
+app.use('/api/v1/messaging', messagingRoutes);
 
 // Make uploads folder static
 app.use('/uploads', express.static(path.join(path.resolve(), 'uploads')));
@@ -64,6 +79,8 @@ app.use('/uploads', express.static(path.join(path.resolve(), 'uploads')));
 app.use(notFound);
 app.use(errorHandler);
 
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`Server running in ${nodeEnv} mode on port ${PORT}`);
 });
+
+export { chatIo };

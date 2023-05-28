@@ -19,12 +19,18 @@ export interface IUser {
   lastName: string;
   email: string;
   password: string;
+  bio: string;
+  occupation: string;
+  location: string;
   tags: [Tag];
   isAdmin: boolean;
   isRegulator: boolean;
   googleId: string;
   emailVerified: boolean;
   imageUrl: string;
+  connections: string[];
+  lastSeen: Date;
+  isOnline: boolean;
 }
 
 export interface IFreelance extends IUser {

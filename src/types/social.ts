@@ -9,6 +9,7 @@ export interface IPost {
   likes: string[];
   tags: string[];
   comments: [{ userId: string; comment: string }];
+  donatable: boolean;
   userId: string;
 }
 

@@ -1,26 +1,24 @@
 import { Request, Response } from '../types/express';
 import asyncHandler from 'express-async-handler';
-import { Job, Freelancer, Notification, Employer } from '../models';
+import { Job, JobApplication, Freelancer, Notification, Employer } from '../models';
 import { Octokit } from 'octokit';
 import { getFilesfromRepo } from '../utils/download';
+import { JobStatus } from '../types';
 
-// Note: A job has four statuses: Pending, Completed, Active, Ready, Available
-// NOTE: When manipulating a job info, only the owner has access
-// NOTE: A job has five statuses: Pending, Completed, Active, Ready, Available
+// NOTE: When manipulating a job info, only the owner has accessPending, Completed, Active, Ready, Available
 /**
  * Get Jobs
- * @route GET /api/v1/jobs
+ * @route GET /api/v1/jobs/:userId
  * @access Public
  */
 const getJobs = asyncHandler(async (req: Request, res: Response) => {
-  const { userId } = req.query as { userId: string };
-  const jobs = await Job.find({ status: 'Available' });
+  const { userId } = req.params as { userId: string };
+  const jobs = await Job.find({ status: JobStatus.Available });
   const user = await Freelancer.findById(userId);
 
   if (user) {
     res.json({
       jobs,
-      skills: user.skills,
     });
   } else {
     res.status(404);
@@ -84,7 +82,7 @@ const deleteJob = asyncHandler(async (req: Request, res: Response) => {
   if (job) {
     errorMessage = 'Job is currently being worked on';
 
-    if (job.status === 'Available' || job.status === 'Pending' || job.status === 'Completed') {
+    if (job.status === JobStatus.Available || job.status === JobStatus.Pending || job.status === JobStatus.Completed) {
       res.json({
         message: `${job?.title} is successfully deleted.`,
       });
@@ -105,13 +103,13 @@ const completeJob = asyncHandler(async (req: Request, res: Response) => {
   // TODO: Only provide the job file assets to the recruiter when payment is completed
   // TODO: Add payment
   // TODO: Implement upgrade points and update user profile
-  const job = await Job.findByIdAndUpdate(jobId, { status: 'Completed' });
+  const job = await Job.findByIdAndUpdate(jobId, { status: JobStatus.Completed });
   let errorMessage = 'Job not found';
 
   if (job) {
     errorMessage = 'Notification Request Failed';
 
-    const pendingNotifications = job.workers.map((worker) => {
+    const pendingNotifications = job.workers.map((worker: string) => {
       return {
         title: `${job.title} Completed`,
         message: `Congratulations!! You have completed the ${job.title} job.`,
@@ -135,42 +133,56 @@ const completeJob = asyncHandler(async (req: Request, res: Response) => {
 
 /**
  * Apply for Job
- * @route GET /api/v1/jobs
+ * @route PUT /api/v1/jobs/:jobId/apply
  * @access Private
  */
 const applyJob = asyncHandler(async (req: Request, res: Response) => {
   const { jobId } = req.params as { jobId: string };
-  const { workerIds } = req.body as { workerIds: string };
-  const workers = workerIds.split(',');
-  const unverifiedWorkers: string[] = [];
-  let workerIterator = 0;
+  const { workerId, estimatedDeadline, payRate, coverLetter, workBid } = req.body as {
+    workerId: string;
+    estimatedDeadline: string;
+    payRate: string;
+    coverLetter: string;
+    workBid: string;
+  };
 
-  new Promise((resolve, _reject) => {
-    workers.forEach((workerId) => {
-      workerIterator++;
-      Freelancer.findById(workerId).then((worker) => {
-        if (worker && !worker.isVerified) unverifiedWorkers.push(workerId);
-        if (workerIterator === workers.length) resolve(true);
-      });
+  const worker = await Freelancer.findById(workerId);
+  let errorMessage = worker ? 'User is not verified for jobs' : 'User not found';
+  let statusCode = worker ? 403 : 404;
+
+  if (worker && worker?.isVerified) {
+    console.log({
+      workerId,
+      jobId,
+      estimatedDeadline,
+      payRate,
+      coverLetter,
+      workBid,
     });
-  }).then(async () => {
-    if (unverifiedWorkers.length === 0) {
-      const job = await Job.findByIdAndUpdate(jobId, { workers, status: 'Active' });
+    const jobApplication = await JobApplication.create({
+      workerId,
+      jobId,
+      estimatedDeadline,
+      payRate,
+      coverLetter,
+      workBid,
+    });
 
-      if (job)
-        res.json({
-          message: `${job?.title} applied successfully.`,
-        });
-      else {
-        res.status(404);
-        throw new Error('Job not found');
-      }
-    } else {
+    errorMessage = 'Failed to submit job proposal';
+    statusCode = 500;
+
+    if (jobApplication) {
       res.json({
-        message: 'There are users that are not verified for work yet. Make sure they are verified and try again.',
-        unverifiedWorkers,
+        message: 'Your proposal has been sent and is pending for approval',
       });
+
+      return;
     }
+  }
+
+  res.status(statusCode);
+  res.json({
+    message: errorMessage,
   });
 });
 
@@ -224,7 +236,7 @@ const addTeamMembers = asyncHandler(async (req: Request, res: Response) => {
  */
 const jobReady = asyncHandler(async (req: Request, res: Response) => {
   const { jobId } = req.params as { jobId: string; workerId: string; recruiterId: string };
-  const job = await Job.findByIdAndUpdate(jobId, { status: 'Ready' });
+  const job = await Job.findByIdAndUpdate(jobId, { status: JobStatus.Ready });
   let errorMessage = 'Job not found';
 
   if (job) {

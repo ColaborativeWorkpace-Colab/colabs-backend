@@ -19,6 +19,10 @@ const postSchema: Schema<IPostDocument, IPostModel> = new mongoose.Schema(
     comments: {
       type: [Object],
     },
+    donatable: {
+      type: Boolean,
+      default: false,
+    },
     userId: {
       type: String,
       required: true,

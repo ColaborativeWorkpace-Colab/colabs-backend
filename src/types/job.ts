@@ -11,6 +11,7 @@ export interface IJob {
   requirements: string[];
   status: string;
   owner: string;
+  paymentVerified: boolean;
 }
 
 export interface ICleanJob extends IJob {
@@ -20,3 +21,11 @@ export interface ICleanJob extends IJob {
 export interface IJobDocument extends IJob, Document {}
 
 export interface IJobModel extends Model<IJobDocument> {}
+
+export enum JobStatus {
+  Pending = 'Pending',
+  Completed = 'Completed',
+  Active = 'Active',
+  Ready = 'Ready',
+  Available = 'Available',
+}

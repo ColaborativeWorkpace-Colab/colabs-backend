@@ -1,41 +1,11 @@
-import mongoose, { Schema } from 'mongoose';
-import { IJobDocument, IJobModel } from '../../types';
-import { modelMethods, staticMethods } from './methods';
+import mongoose from 'mongoose';
+import { IJobDocument, IJobModel, IJobApplicationDocument, IJobApplicationModel } from '../../types';
+import { JobSchema, JobApplicationSchema } from './Schemas';
 
-const jobSchema: Schema<IJobDocument, IJobModel> = new mongoose.Schema(
-  {
-    title: {
-      type: String,
-      required: true,
-    },
-    description: {
-      type: String,
-    },
-    earnings: {
-      type: Number,
-      required: true,
-    },
-    workers: {
-      type: [String],
-    },
-    requirements: {
-      type: [String],
-    },
-    status: {
-      type: String,
-      default: 'Available',
-    },
-    owner: {
-      type: String,
-      required: true,
-    },
-  },
-  {
-    timestamps: true, // Automatically create createdAt timestamp
-  },
+const Job = mongoose.model<IJobDocument, IJobModel>('Job', JobSchema);
+const JobApplication = mongoose.model<IJobApplicationDocument, IJobApplicationModel>(
+  'JobApplication',
+  JobApplicationSchema,
 );
 
-jobSchema.method(modelMethods);
-jobSchema.static(staticMethods);
-
-export default mongoose.model<IJobDocument, IJobModel>('Job', jobSchema);
+export { Job, JobApplication };
