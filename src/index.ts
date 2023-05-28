@@ -78,9 +78,9 @@ app.use('/uploads', express.static(path.join(path.resolve(), 'uploads')));
 app.use(notFound);
 app.use(errorHandler);
 
-httpServer.listen(PORT, () => {
+app.listen(PORT, () => {
   console.log(`Server running in ${nodeEnv} mode on port ${PORT}`);
 });
 
 export { chatIo };
-export default httpServer;
+export default app;
