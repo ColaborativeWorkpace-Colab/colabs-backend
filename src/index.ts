@@ -7,9 +7,9 @@ import passportConfig from './config/passport';
 import session from 'express-session';
 
 // Messaging
-import { createServer } from 'http';
-import { Server as MessagingServer } from 'socket.io';
-import { messagingSocket } from './controllers/messaging';
+// import { createServer } from 'http';
+// import { Server as MessagingServer } from 'socket.io';
+// import { messagingSocket } from './controllers/messaging';
 
 // Routes
 import userRoutes from './routes/user';
@@ -35,12 +35,12 @@ envExample();
 passportConfig(passport);
 
 const app = express();
-const httpServer = createServer(app);
-const chatIo = new MessagingServer(httpServer, {
-  cors: {
-    origin: '*',
-  },
-});
+// const httpServer = createServer(app);
+// const chatIo = new MessagingServer(httpServer, {
+//   cors: {
+//     origin: '*',
+//   },
+// });
 
 // Middleware to accept JSON in body
 app.use(express.json());
@@ -57,7 +57,7 @@ app.use(morgan('dev'));
 
 connectDB();
 
-chatIo.on('connection', messagingSocket);
+// chatIo.on('connection', messagingSocket);
 
 app.get('/', (_req: Request, res: Response) => {
   res.send('API IS RUNNING...');
@@ -78,9 +78,10 @@ app.use('/uploads', express.static(path.join(path.resolve(), 'uploads')));
 app.use(notFound);
 app.use(errorHandler);
 
-httpServer.listen(PORT, () => {
+app.listen(PORT, () => {
   console.log(`Server running in ${nodeEnv} mode on port ${PORT}`);
 });
 
-export { chatIo };
-export default httpServer;
+// export { chatIo };
+// export default httpServer;
+export default app;
