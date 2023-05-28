@@ -1,9 +1,11 @@
 {
   "name": "colabs-backend",
   "version": "1.0.0",
-  "main": "/src/index.ts",
+  "main": "src/index.ts",
   "scripts": {
     "dev": "nodemon ./src/index.ts",
+    "start": "node build/index.js",
+    "build": "tsc -p .",
     "prod": "tsc && nodemon build/index.js",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.ts\" --config ./.prettierrc",
     "lint": "tslint -p tsconfig.json",
