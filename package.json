@@ -5,7 +5,6 @@
   "scripts": {
     "dev": "nodemon ./src/index.ts",
     "start": "node build/index.js",
-    "build": "tsc -p .",
     "prod": "tsc && nodemon build/index.js",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.ts\" --config ./.prettierrc",
     "lint": "tslint -p tsconfig.json",
