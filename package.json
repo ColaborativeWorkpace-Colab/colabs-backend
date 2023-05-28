@@ -2,10 +2,13 @@
   "name": "colabs-backend",
   "version": "1.0.0",
   "main": "src/index.ts",
+  "engines": {
+    "node": "^16"
+  },
   "scripts": {
     "dev": "nodemon src/index.ts",
-    "start": "nodemon src/index.ts",
-    "prod": "tsc && nodemon build/index.js",
+    "start": "node build/index.js",
+    "prod": "tsc && node build/index.js",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.ts\" --config ./.prettierrc",
     "lint": "tslint -p tsconfig.json",
     "test": "jest --config jestconfig.json",
