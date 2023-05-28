@@ -83,4 +83,4 @@ httpServer.listen(PORT, () => {
 });
 
 export { chatIo };
-export default app;
+export default httpServer;
