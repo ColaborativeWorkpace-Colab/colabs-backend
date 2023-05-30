@@ -4,7 +4,7 @@
   "main": "src/index.ts",
   "scripts": {
     "dev": "nodemon src/index.ts",
-    "start": "nodemon src/index.ts",
+    "start": "yarn run build && node dist/index.js",
     "build": "rimraf dist && tsc",
     "add-build": "git add dist",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.ts\" --config ./.prettierrc",
