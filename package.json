@@ -6,7 +6,6 @@
     "dev": "nodemon src/index.ts",
     "start": "yarn run build && node dist/index.js",
     "build": "rimraf dist && tsc",
-    "add-build": "git add dist",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.ts\" --config ./.prettierrc",
     "lint": "tslint -p tsconfig.json",
     "test": "jest --config jestconfig.json",
@@ -69,8 +68,8 @@
   },
   "lint-staged": {
     "**/*.{js,jsx,ts,tsx}": [
-      "npm run build",
-      "npm run add-build"
+      "npm run lint:fix",
+      "npm run format"
     ]
   }
 }

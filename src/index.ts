@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import path from 'path';
-import dotenv from 'dotenv';
+import * as dotenv from 'dotenv';
 import connectDB from './config/db';
 import { notFound, errorHandler } from './middleware/errorMiddleware';
 import passportConfig from './config/passport';
@@ -81,5 +81,7 @@ app.use(errorHandler);
 httpServer.listen(PORT, () => {
   console.log(`Server running in ${nodeEnv} mode on port ${PORT}`);
 });
+
+export default httpServer;
 
 export { chatIo };
