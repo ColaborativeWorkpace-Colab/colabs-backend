@@ -6,6 +6,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const fs_1 = __importDefault(require("fs"));
 function envExample() {
     let envExample = fs_1.default.readFileSync('.env', 'utf8');
+    if (!envExample)
+        return;
     envExample = envExample.replace(/=.*/g, '=env_value');
     fs_1.default.writeFileSync('.env.example', envExample);
 }

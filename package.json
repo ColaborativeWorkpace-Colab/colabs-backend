@@ -67,7 +67,7 @@
     "typescript": "^4.9.3"
   },
   "lint-staged": {
-    "**/*.{js,jsx,ts,tsx}": [
+    "src/**/*.ts": [
       "npm run lint:fix",
       "npm run format"
     ]
