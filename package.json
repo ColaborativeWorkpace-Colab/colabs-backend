@@ -66,9 +66,12 @@
     "tslint-config-prettier": "^1.18.0",
     "typescript": "^4.9.3"
   },
-  "pre-commit": [
-    "lint",
-    "build",
-    "git add dist"
-  ]
+  "lint-staged": {
+    "src/**/*.ts": [
+      "npm run lint:fix",
+      "npm run format",
+      "npm run build",
+      "git add dist"
+    ]
+  }
 }
