@@ -69,7 +69,9 @@
   "lint-staged": {
     "src/**/*.ts": [
       "npm run lint:fix",
-      "npm run format"
+      "npm run format",
+      "npm run build",
+      "git add -A"
     ]
   }
 }
