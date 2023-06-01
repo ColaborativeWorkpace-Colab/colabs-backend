@@ -23,13 +23,9 @@ import messagingRoutes from './routes/messaging';
 import morgan from 'morgan';
 import { nodeEnv } from './config';
 import passport from 'passport';
-import envExample from './utils/envExample';
 dotenv.config();
 
 const PORT = process.env.PORT || 5000;
-
-// load env vars example
-envExample();
 
 // Passport config
 passportConfig(passport);
