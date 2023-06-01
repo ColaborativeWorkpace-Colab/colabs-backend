@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import path from 'path';
-import dotenv from 'dotenv';
+import * as dotenv from 'dotenv';
 import connectDB from './config/db';
 import { notFound, errorHandler } from './middleware/errorMiddleware';
 import passportConfig from './config/passport';
@@ -23,12 +23,9 @@ import messagingRoutes from './routes/messaging';
 import morgan from 'morgan';
 import { nodeEnv } from './config';
 import passport from 'passport';
-import envExample from './utils/envExample';
+dotenv.config();
 
 const PORT = process.env.PORT || 5000;
-
-// load env vars example
-envExample();
 
 // Passport config
 passportConfig(passport);
@@ -53,8 +50,6 @@ app.use(
 
 // Morgan logging
 app.use(morgan('dev'));
-
-dotenv.config();
 
 connectDB();
 
@@ -82,5 +77,7 @@ app.use(errorHandler);
 httpServer.listen(PORT, () => {
   console.log(`Server running in ${nodeEnv} mode on port ${PORT}`);
 });
+
+export default httpServer;
 
 export { chatIo };

@@ -15,3 +15,5 @@ export function forgotPasswordFormat(link: string): string {
    </a>
 `;
 }
+
+// todo add other email format to handle other email types

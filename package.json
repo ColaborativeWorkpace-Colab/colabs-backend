@@ -1,10 +1,11 @@
 {
   "name": "colabs-backend",
   "version": "1.0.0",
-  "main": "server.js",
+  "main": "src/index.ts",
   "scripts": {
-    "dev": "nodemon ./src/server.ts",
-    "prod": "tsc && nodemon build/server.js",
+    "dev": "nodemon src/index.ts",
+    "start": "yarn run build && node dist/index.js",
+    "build": "rimraf dist && tsc",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.ts\" --config ./.prettierrc",
     "lint": "tslint -p tsconfig.json",
     "test": "jest --config jestconfig.json",
@@ -57,6 +58,7 @@
     "lint-staged": "^13.2.0",
     "nodemon": "^2.0.19",
     "prettier": "^2.8.1",
+    "rimraf": "^5.0.1",
     "socket.io-client": "^4.6.1",
     "ts-jest": "^26.5.6",
     "ts-node": "^10.9.1",
@@ -65,7 +67,7 @@
     "typescript": "^4.9.3"
   },
   "lint-staged": {
-    "**/*.{js,jsx,ts,tsx}": [
+    "src/**/*.ts": [
       "npm run lint:fix",
       "npm run format"
     ]
