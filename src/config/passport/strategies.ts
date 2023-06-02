@@ -6,6 +6,7 @@ import {
   githubCallbackUrl,
   githubClientId,
   githubClientSecret,
+  backendURL,
 } from '..';
 import { Profile, VerifyCallback } from 'passport-google-oauth20';
 import { Strategy as GithubStrategy, Profile as GithubProfile } from 'passport-github2';
@@ -16,7 +17,7 @@ const googleStategey = new GoogleStrategy(
   {
     clientID: googleClientId,
     clientSecret: googleClientSecret,
-    callbackURL: googleCallbackUrl,
+    callbackURL: backendURL + googleCallbackUrl,
     scope: ['profile', 'email'],
     passReqToCallback: true,
   },
@@ -36,7 +37,7 @@ const githubStategey = new GithubStrategy(
   {
     clientID: githubClientId,
     clientSecret: githubClientSecret,
-    callbackURL: githubCallbackUrl,
+    callbackURL: backendURL + githubCallbackUrl,
     passReqToCallback: true,
   },
   async (

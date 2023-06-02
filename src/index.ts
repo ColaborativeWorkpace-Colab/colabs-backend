@@ -19,6 +19,7 @@ import jobRoutes from './routes/jobs';
 import profileRoutes from './routes/profile';
 import socialRoutes from './routes/social';
 import messagingRoutes from './routes/messaging';
+import chapaRoutes from './routes/chapa';
 
 import morgan from 'morgan';
 import { nodeEnv } from './config';
@@ -66,6 +67,7 @@ app.use('/api/v1/jobs', jobRoutes);
 app.use('/api/v1/profile', profileRoutes);
 app.use('/api/v1/social', socialRoutes);
 app.use('/api/v1/messaging', messagingRoutes);
+app.use('/api/v1/chapa', chapaRoutes);
 
 // Make uploads folder static
 app.use('/uploads', express.static(path.join(path.resolve(), 'uploads')));
