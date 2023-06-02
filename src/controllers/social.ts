@@ -270,6 +270,37 @@ const removeUserSocialConnections = asyncHandler(async (req: Request, res: Respo
   throw new Error(errorMessage);
 });
 
+/**
+ * Get post data of a certain topic and explore
+ * @route PUT /api/v1/social/explore/:postTag
+ * @access Private
+ */
+const getPostData = asyncHandler(async (req: Request, res: Response) => {
+  const { postTag } = req.params as { postTag?: string };
+  let posts;
+  const statusCode = postTag !== null ? 404 : 204;
+  const errorMessage = postTag !== null ? 'Tag not found' : 'No Content Available';
+
+  if (postTag !== null) {
+    posts = await Post.find({ tags: { $in: [postTag] } })
+      .sort({ createdAt: -1 })
+      .limit(10);
+  } else {
+    posts = await Post.find({}).sort({ createdAt: -1 }).limit(10);
+  }
+
+  if (posts) {
+    res.json({
+      posts,
+    });
+
+    return;
+  }
+
+  res.status(statusCode);
+  throw new Error(errorMessage);
+});
+
 // TODO: donate to creator
 export {
   getPosts,
@@ -280,4 +311,5 @@ export {
   getUserSocialConnections,
   addUserSocialConnections,
   removeUserSocialConnections,
+  getPostData,
 };

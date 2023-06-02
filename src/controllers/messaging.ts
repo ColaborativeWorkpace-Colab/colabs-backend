@@ -204,7 +204,6 @@ const getLastSeen = asyncHandler(async (req: Request, res: Response) => {
       if (index === users.length - 2) resolve(lastSeenStatuses);
     });
   }).then((lastSeenStatuses) => {
-    console.log(lastSeenStatuses);
     res.json(lastSeenStatuses);
   });
 });

@@ -8,6 +8,7 @@ import {
   getUserSocialConnections,
   addUserSocialConnections,
   removeUserSocialConnections,
+  getPostData,
 } from '../controllers/social';
 
 const router = express.Router();
@@ -23,5 +24,8 @@ router.route('/:userId/:postId/edit').put(editPost);
 router.route('/connections/:userId').get(getUserSocialConnections);
 router.route('/connections/:userId/addConnection').put(addUserSocialConnections);
 router.route('/connections/:userId/removeConnection').put(removeUserSocialConnections);
+
+// Explore Routes
+router.route('/explore/:postTag').get(getPostData);
 
 export default router;
