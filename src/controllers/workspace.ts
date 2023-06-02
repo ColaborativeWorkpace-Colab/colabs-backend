@@ -497,7 +497,6 @@ const deleteTasks = asyncHandler(async (req: Request, res: Response) => {
       const tasksUpdated = await project.updateOne({ tasks: updatedTasks });
 
       if (tasksUpdated) {
-        console.log(tasksUpdated);
         res.json({
           message: 'Task removed',
         });
