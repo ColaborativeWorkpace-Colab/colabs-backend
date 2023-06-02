@@ -28,7 +28,6 @@ const UserSchema: Schema<IUserDocument, IUserModel> = new Schema(
     },
     password: {
       type: String,
-      required: true,
     },
     bio: {
       type: String,
