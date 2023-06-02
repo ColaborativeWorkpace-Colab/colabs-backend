@@ -234,6 +234,15 @@ const authWithGoogleRedirect = asyncHandler(async (req: Request, res: Response) 
 });
 
 /**
+ * Redirect mobile user with access-token
+ * @route GET /api/users/google/mobile/callback
+ * @access Public
+ */
+const authWithGoogleMobileRedirect = asyncHandler(async (req: Request, res: Response) => {
+  res.json({ token: req.user?.token });
+});
+
+/**
  * Redirect user with access-toke
  * @route GET /api/users/signup/verify-me
  * @access Public
@@ -455,6 +464,7 @@ export {
   updateUserOther,
   authWithGoogle,
   authWithGoogleCallback,
+  authWithGoogleMobileRedirect,
   authWithGoogleRedirect,
   verifyEmail,
   authWithGithub,
