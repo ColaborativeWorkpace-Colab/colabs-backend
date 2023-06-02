@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteRequestByIdSelf = exports.getRequestByIdSelf = exports.getAllRequestSelf = exports.getRequestByIdOthers = exports.updateRequest = exports.getAllRequestOthers = exports.submitRequest = exports.forgotPassword = exports.authWithGithubRedirect = exports.authWithGithubCallback = exports.authWithGithub = exports.verifyEmail = exports.authWithGoogleRedirect = exports.authWithGoogleCallback = exports.authWithGoogle = exports.updateUserOther = exports.getUserById = exports.deleteUser = exports.getUsers = exports.updateUserSelf = exports.registerUser = exports.getUserProfile = exports.authUser = void 0;
+exports.deleteRequestByIdSelf = exports.getRequestByIdSelf = exports.getAllRequestSelf = exports.getRequestByIdOthers = exports.updateRequest = exports.getAllRequestOthers = exports.submitRequest = exports.forgotPassword = exports.authWithGithubRedirect = exports.authWithGithubCallback = exports.authWithGithub = exports.verifyEmail = exports.authWithGoogleRedirect = exports.authWithGoogleMobileRedirect = exports.authWithGoogleCallback = exports.authWithGoogle = exports.updateUserOther = exports.getUserById = exports.deleteUser = exports.getUsers = exports.updateUserSelf = exports.registerUser = exports.getUserProfile = exports.authUser = void 0;
 const express_async_handler_1 = __importDefault(require("express-async-handler"));
 const models_1 = require("../models/");
 const generateToken_1 = __importDefault(require("../utils/generateToken"));
@@ -181,6 +181,11 @@ const authWithGoogleRedirect = (0, express_async_handler_1.default)(async (req, 
     res.redirect(`${config_1.frontendURL}/signup-success/?type=${(_b = req.user) === null || _b === void 0 ? void 0 : _b.type}&token=${(_c = req.user) === null || _c === void 0 ? void 0 : _c.token}`);
 });
 exports.authWithGoogleRedirect = authWithGoogleRedirect;
+const authWithGoogleMobileRedirect = (0, express_async_handler_1.default)(async (req, res) => {
+    var _a;
+    res.json({ token: (_a = req.user) === null || _a === void 0 ? void 0 : _a.token });
+});
+exports.authWithGoogleMobileRedirect = authWithGoogleMobileRedirect;
 const verifyEmail = (0, express_async_handler_1.default)(async (req, res) => {
     const { token, type } = req.query;
     const secret = config_1.jwtSecret;
