@@ -25,6 +25,7 @@ import {
   deleteRequestByIdSelf,
   getRequestByIdOthers,
   getAllRequestOthers,
+  authWithGoogleMobileRedirect,
 } from '../controllers/user';
 import { admin, protect } from '../middleware/authMiddleware';
 import requestValidations from '../validators/requestValidations';
@@ -35,6 +36,7 @@ router.route('/').post(userValidators.registerUser, parseValidationError, regist
 router.route('/login').post(userValidators.loginUser, parseValidationError, authUser);
 router.route('/google').get(userValidators.socialRegisterUser, parseValidationError, authWithGoogle);
 router.route('/google/callback').get(authWithGoogleCallback, authWithGoogleRedirect);
+router.route('/google/mobile/callback').get(authWithGoogleCallback, authWithGoogleMobileRedirect);
 router.route('/github').get(userValidators.socialRegisterUser, parseValidationError, authWithGithub);
 router.route('/github/callback').get(authWithGithubCallback, authWithGithubRedirect);
 router.route('/signup/verify-email').get(verifyEmail);
