@@ -13,5 +13,6 @@ router.route('/:userId/:postId/edit').put(social_1.editPost);
 router.route('/connections/:userId').get(social_1.getUserSocialConnections);
 router.route('/connections/:userId/addConnection').put(social_1.addUserSocialConnections);
 router.route('/connections/:userId/removeConnection').put(social_1.removeUserSocialConnections);
+router.route('/explore/:postTag').get(social_1.getPostData);
 exports.default = router;
 //# sourceMappingURL=social.js.map

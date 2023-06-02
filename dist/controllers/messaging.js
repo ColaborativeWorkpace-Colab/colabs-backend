@@ -156,7 +156,6 @@ const getLastSeen = (0, express_async_handler_1.default)(async (req, res) => {
                 resolve(lastSeenStatuses);
         });
     }).then((lastSeenStatuses) => {
-        console.log(lastSeenStatuses);
         res.json(lastSeenStatuses);
     });
 });

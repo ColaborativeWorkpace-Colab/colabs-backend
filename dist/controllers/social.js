@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.removeUserSocialConnections = exports.addUserSocialConnections = exports.getUserSocialConnections = exports.editPost = exports.commentPost = exports.likePost = exports.postContent = exports.getPosts = void 0;
+exports.getPostData = exports.removeUserSocialConnections = exports.addUserSocialConnections = exports.getUserSocialConnections = exports.editPost = exports.commentPost = exports.likePost = exports.postContent = exports.getPosts = void 0;
 const express_async_handler_1 = __importDefault(require("express-async-handler"));
 const models_1 = require("../models");
 const getPosts = (0, express_async_handler_1.default)(async (req, res) => {
@@ -196,4 +196,27 @@ const removeUserSocialConnections = (0, express_async_handler_1.default)(async (
     throw new Error(errorMessage);
 });
 exports.removeUserSocialConnections = removeUserSocialConnections;
+const getPostData = (0, express_async_handler_1.default)(async (req, res) => {
+    const { postTag } = req.params;
+    let posts;
+    const statusCode = postTag !== null ? 404 : 204;
+    const errorMessage = postTag !== null ? 'Tag not found' : 'No Content Available';
+    if (postTag !== null) {
+        posts = await models_1.Post.find({ tags: { $in: [postTag] } })
+            .sort({ createdAt: -1 })
+            .limit(10);
+    }
+    else {
+        posts = await models_1.Post.find({}).sort({ createdAt: -1 }).limit(10);
+    }
+    if (posts) {
+        res.json({
+            posts,
+        });
+        return;
+    }
+    res.status(statusCode);
+    throw new Error(errorMessage);
+});
+exports.getPostData = getPostData;
 //# sourceMappingURL=social.js.map

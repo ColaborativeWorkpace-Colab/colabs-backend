@@ -409,7 +409,6 @@ const deleteTasks = (0, express_async_handler_1.default)(async (req, res) => {
             const updatedTasks = project.tasks.filter((task) => task.id !== taskId);
             const tasksUpdated = await project.updateOne({ tasks: updatedTasks });
             if (tasksUpdated) {
-                console.log(tasksUpdated);
                 res.json({
                     message: 'Task removed',
                 });
