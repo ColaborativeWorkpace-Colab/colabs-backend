@@ -23,6 +23,9 @@ const JobSchema: Schema<IJobDocument, IJobModel> = new mongoose.Schema(
     workers: {
       type: [String],
     },
+    pendingworkers: {
+      type: [String],
+    },
     requirements: {
       type: [String],
     },

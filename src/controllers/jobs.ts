@@ -13,7 +13,7 @@ import { JobStatus } from '../types';
  */
 const getJobs = asyncHandler(async (req: Request, res: Response) => {
   const { userId } = req.params as { userId: string };
-  const jobs = await Job.find({ status: JobStatus.Available });
+  const jobs = await Job.find({ $or: [{ status: JobStatus.Available }, { status: JobStatus.Pending }] });
   const user = await Freelancer.findById(userId);
 
   if (user) {
@@ -151,14 +151,6 @@ const applyJob = asyncHandler(async (req: Request, res: Response) => {
   let statusCode = worker ? 403 : 404;
 
   if (worker && worker?.isVerified) {
-    console.log({
-      workerId,
-      jobId,
-      estimatedDeadline,
-      payRate,
-      coverLetter,
-      workBid,
-    });
     const jobApplication = await JobApplication.create({
       workerId,
       jobId,
@@ -172,11 +164,15 @@ const applyJob = asyncHandler(async (req: Request, res: Response) => {
     statusCode = 500;
 
     if (jobApplication) {
-      res.json({
-        message: 'Your proposal has been sent and is pending for approval',
-      });
+      const job = await Job.findByIdAndUpdate(jobId, { status: 'Pending', $push: { pendingworkers: workerId } });
 
-      return;
+      if (job) {
+        res.json({
+          message: 'Your proposal has been sent and is pending for approval',
+        });
+
+        return;
+      }
     }
   }
 

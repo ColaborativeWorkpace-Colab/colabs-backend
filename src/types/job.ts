@@ -8,6 +8,7 @@ export interface IJob {
   description: string;
   earnings: number;
   workers: string[];
+  pendingworkers: string[];
   requirements: string[];
   status: string;
   owner: string;

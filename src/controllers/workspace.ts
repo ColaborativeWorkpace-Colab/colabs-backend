@@ -88,18 +88,18 @@ const createProject = asyncHandler(async (req: Request, res: Response) => {
     auth: process.env.GITHUB_PERSONAL_ACCESS_TOKEN,
   });
   let errorMessage = 'User not found';
-
+  const projectValidName = projectName.replace(' ', '-');
   if (user) {
     errorMessage = 'Project Creation Failed';
 
     const repoResponse = await client.request(`POST /orgs/${process.env.GITHUB_ORGANIZATION}/repos`, {
-      name: projectName,
+      name: projectValidName,
       homepage: 'https://github.com',
       private: true,
     });
 
     if (repoResponse.status === 201) {
-      const repository = await Repository.create({ name: projectName, owner: userId });
+      const repository = await Repository.create({ name: projectValidName, owner: userId });
 
       if (repository) {
         const permissions = user.permissions;
