@@ -14,6 +14,7 @@ router.route('/').post(userValidators_1.default.registerUser, errorMiddleware_1.
 router.route('/login').post(userValidators_1.default.loginUser, errorMiddleware_1.parseValidationError, user_1.authUser);
 router.route('/google').get(userValidators_1.default.socialRegisterUser, errorMiddleware_1.parseValidationError, user_1.authWithGoogle);
 router.route('/google/callback').get(user_1.authWithGoogleCallback, user_1.authWithGoogleRedirect);
+router.route('/google/mobile/callback').get(user_1.authWithGoogleCallback, user_1.authWithGoogleMobileRedirect);
 router.route('/github').get(userValidators_1.default.socialRegisterUser, errorMiddleware_1.parseValidationError, user_1.authWithGithub);
 router.route('/github/callback').get(user_1.authWithGithubCallback, user_1.authWithGithubRedirect);
 router.route('/signup/verify-email').get(user_1.verifyEmail);

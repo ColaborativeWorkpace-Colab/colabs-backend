@@ -5,6 +5,7 @@ import connectDB from './config/db';
 import { notFound, errorHandler } from './middleware/errorMiddleware';
 import passportConfig from './config/passport';
 import session from 'express-session';
+import MongoStore from 'connect-mongo';
 
 // Messaging
 import { createServer } from 'http';
@@ -21,7 +22,7 @@ import socialRoutes from './routes/social';
 import messagingRoutes from './routes/messaging';
 
 import morgan from 'morgan';
-import { nodeEnv } from './config';
+import { mongoUrl, nodeEnv } from './config';
 import passport from 'passport';
 dotenv.config();
 
@@ -45,6 +46,9 @@ app.use(
     secret: 'secret',
     resave: true,
     saveUninitialized: true,
+    store: MongoStore.create({
+      mongoUrl,
+    }),
   }),
 );
 
