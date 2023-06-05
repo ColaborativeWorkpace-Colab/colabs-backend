@@ -41,7 +41,6 @@ const getProjectFiles = asyncHandler(async (req: Request, res: Response) => {
     const commits = await client.request(`GET /repos/${process.env.GITHUB_ORGANIZATION}/${repository.name}/commits`);
 
     res.json({
-      files: repository,
       commits,
     });
   } else {
@@ -597,6 +596,61 @@ const assignTask = asyncHandler(async (req: Request, res: Response) => {
   throw new Error(errorMessage);
 });
 
+/**
+ * Add members to project
+ * @route PUT /api/v1/workspaces/projects/:projectId/addMembers
+ * @access Private
+ */
+const addProjectMembers = asyncHandler(async (req: Request, res: Response) => {
+  const { projectId } = req.params as { projectId: string };
+  const { workerIds } = req.body as { workerIds: string };
+  const workers = workerIds.split(',');
+  let errorMessage = 'Project not found';
+  let statusCode = 404;
+  let workerIterator = 0;
+  const unverifiedWorkers: string[] = [];
+
+  new Promise((resolve, _reject) => {
+    workers.forEach((workerId) => {
+      workerIterator++;
+      Freelancer.findById(workerId).then((worker) => {
+        if (worker && !worker.isVerified) unverifiedWorkers.push(workerId);
+        if (workerIterator === workers.length) resolve(true);
+      });
+    });
+  }).then(async () => {
+    if (unverifiedWorkers.length === 0) {
+      const project = await Repository.findById(projectId);
+
+      if (project) {
+        errorMessage = 'Failed to add members to project';
+        statusCode = 500;
+
+        const membersAdded = await project.updateOne({ $push: { members: [...workers] } });
+
+        if (membersAdded) {
+          res.json({
+            message: 'Users added to project',
+          });
+
+          return;
+        }
+      }
+    } else {
+      res.status(403);
+      res.json({
+        message: 'There are users that are not verified for work yet. Make sure they are verified and try again.',
+        unverifiedWorkers,
+      });
+
+      return;
+    }
+
+    res.status(statusCode);
+    throw new Error(errorMessage);
+  });
+});
+
 export {
   getProjects,
   createProject,
@@ -611,4 +665,5 @@ export {
   deleteTasks,
   updateTaskStatus,
   assignTask,
+  addProjectMembers,
 };

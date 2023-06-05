@@ -13,7 +13,9 @@ const repositorySchema: Schema<IRepositoryDocument, IRepositoryModel> = new mong
     },
     files: {
       type: [Object],
-      default: [],
+    },
+    members: {
+      type: [String],
     },
     owner: {
       type: String,

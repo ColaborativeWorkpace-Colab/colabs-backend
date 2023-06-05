@@ -7,6 +7,7 @@ export interface IRepository {
   name: string;
   tasks: Task[];
   files: object[];
+  members: string[];
   owner: string;
 }
 
