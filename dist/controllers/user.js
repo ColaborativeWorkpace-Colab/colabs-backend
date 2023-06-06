@@ -275,7 +275,7 @@ const submitRequest = (0, express_async_handler_1.default)(async (req, res) => {
     var _a;
     const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
     const { docs, type } = req.body;
-    await models_1.User.create({
+    await models_1.Request.create({
         user: userId,
         docs: [...docs],
         status: request_1.RequestStatus.INREVIEW,
@@ -287,19 +287,19 @@ const submitRequest = (0, express_async_handler_1.default)(async (req, res) => {
 });
 exports.submitRequest = submitRequest;
 const getAllRequestOthers = (0, express_async_handler_1.default)(async (_req, res) => {
-    const requests = await models_1.User.find({ status: request_1.RequestStatus.INREVIEW });
+    const requests = await models_1.Request.find({ status: request_1.RequestStatus.INREVIEW });
     res.status(http_status_1.default.OK).send({ requests });
 });
 exports.getAllRequestOthers = getAllRequestOthers;
 const getAllRequestSelf = (0, express_async_handler_1.default)(async (_req, res) => {
     var _a;
-    const requests = await models_1.User.find({ user: (_a = _req.user) === null || _a === void 0 ? void 0 : _a._id });
+    const requests = await models_1.Request.find({ user: (_a = _req.user) === null || _a === void 0 ? void 0 : _a._id });
     res.status(http_status_1.default.OK).send({ requests });
 });
 exports.getAllRequestSelf = getAllRequestSelf;
 const getRequestByIdOthers = (0, express_async_handler_1.default)(async (_req, res) => {
     const { id } = _req.params;
-    const request = await models_1.User.findById(id);
+    const request = await models_1.Request.findById(id);
     if (!request)
         res.status(http_status_1.default.NOT_FOUND).send({ message: 'Request not found' });
     res.status(http_status_1.default.OK).send({ request });
@@ -308,7 +308,7 @@ exports.getRequestByIdOthers = getRequestByIdOthers;
 const getRequestByIdSelf = (0, express_async_handler_1.default)(async (req, res) => {
     var _a;
     const { id } = req.params;
-    const request = await models_1.User.findOne({ user: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id, _id: id });
+    const request = await models_1.Request.findOne({ user: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id, _id: id });
     if (!request)
         res.status(http_status_1.default.NOT_FOUND).send({ message: 'Request not found' });
     res.status(http_status_1.default.OK).send({ request });
@@ -317,7 +317,7 @@ exports.getRequestByIdSelf = getRequestByIdSelf;
 const deleteRequestByIdSelf = (0, express_async_handler_1.default)(async (req, res) => {
     var _a, _b;
     const { id } = req.params;
-    const existRequest = await models_1.User.findOne({ user: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id, _id: id });
+    const existRequest = await models_1.Request.findOne({ user: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id, _id: id });
     if (!existRequest)
         res.status(http_status_1.default.NOT_FOUND).send({ message: 'Request not found' });
     await models_1.User.deleteOne({ user: (_b = req.user) === null || _b === void 0 ? void 0 : _b._id, _id: id });
