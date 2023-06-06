@@ -39,9 +39,39 @@ const getProjectFiles = asyncHandler(async (req: Request, res: Response) => {
 
   if (repository) {
     const commits = await client.request(`GET /repos/${process.env.GITHUB_ORGANIZATION}/${repository.name}/commits`);
+    const trees = await client.request(
+      `GET /repos/${process.env.GITHUB_ORGANIZATION}/${repository.name}/git/trees/main`,
+    );
 
     res.json({
       commits,
+      trees,
+    });
+  } else {
+    res.status(404);
+    throw new Error('Project not found');
+  }
+});
+
+/**
+ * Get Trees
+ * @route GET /api/v1/workspaces/projects/:projectId/:sha
+ * @access Private
+ */
+const getTrees = asyncHandler(async (req: Request, res: Response) => {
+  const { projectId, sha } = req.params as { projectId: string; sha: string };
+  const repository = await Repository.findById(projectId);
+  const client = new Octokit({
+    auth: process.env.GITHUB_PERSONAL_ACCESS_TOKEN,
+  });
+
+  if (repository) {
+    const trees = await client.request(
+      `GET /repos/${process.env.GITHUB_ORGANIZATION}/${repository.name}/git/trees/${sha}`,
+    );
+
+    res.json({
+      trees,
     });
   } else {
     res.status(404);
@@ -659,6 +689,7 @@ export {
   deleteProjectFiles,
   givePermissions,
   getProjectFiles,
+  getTrees,
   getFileVersions,
   addTasks,
   editTasks,

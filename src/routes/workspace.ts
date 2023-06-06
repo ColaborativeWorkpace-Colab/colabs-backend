@@ -15,6 +15,7 @@ import {
   updateTaskStatus,
   assignTask,
   addProjectMembers,
+  getTrees,
 } from '../controllers/workspace';
 
 const router = express.Router();
@@ -24,6 +25,7 @@ router.route('/projects').post(createProject);
 
 router.route('/projects/:projectId/uploadFiles').put(fileUploadMulter.any(), uploadProjectFiles);
 router.route('/projects/:projectId').get(getProjectFiles);
+router.route('/projects/:projectId/:sha').get(getTrees);
 router.route('/projects/:projectId/:fileRef').get(getFileVersions);
 router.route('/projects/:projectId/delete').delete(deleteProject);
 router.route('/projects/:projectId/removeFiles').put(deleteProjectFiles);
