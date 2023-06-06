@@ -4,6 +4,7 @@ import {
   IJobApplicationDocument,
   IJobApplicationModel,
   JobApplicationStatus,
+  JobStatus,
 } from '../../../types';
 import mongoose, { Schema } from 'mongoose';
 
@@ -23,12 +24,10 @@ const JobSchema: Schema<IJobDocument, IJobModel> = new mongoose.Schema(
     workers: {
       type: [String],
     },
-    requirements: {
-      type: [String],
-    },
     status: {
       type: String,
-      default: 'Available',
+      enum: Object.values(JobStatus),
+      default: JobStatus.Pending,
     },
     owner: {
       type: String,
@@ -72,6 +71,7 @@ const JobApplicationSchema: Schema<IJobApplicationDocument, IJobApplicationModel
     },
     status: {
       type: String,
+      enum: Object.values(JobApplicationStatus),
       default: JobApplicationStatus.Pending,
     },
   },

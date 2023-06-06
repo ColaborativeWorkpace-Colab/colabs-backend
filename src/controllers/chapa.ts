@@ -1,8 +1,9 @@
 import Chapa from 'chapa-node';
-import { backendURL, chapaKey, frontendURL } from '../config/envVars';
+import { backendURL, chapaKey, frontendURL, chapaWebHookHash } from '../config/envVars';
 import asyncHandler from 'express-async-handler';
-import { BankAccountInfo, JobStatus, PaymentStatus, Request, Response } from 'src/types';
-import { Job, User, Payment } from 'src/models';
+import { BankAccountInfo, JobStatus, PaymentStatus, Request, Response } from '../types';
+import { Job, User, Payment } from '../models';
+import crypto from 'crypto';
 
 const chapa = new Chapa(chapaKey);
 
@@ -50,11 +51,10 @@ const initializePayment = asyncHandler(async (req: Request, res: Response) => {
       employerId: jobOwner._id,
       jobId: job._id,
       amount: earnings,
+      status: PaymentStatus.PENDING,
       txRef,
       currency: 'ETB',
     });
-
-    await job.updateOne({ status: JobStatus.Pending });
 
     res.send(response);
   }
@@ -117,11 +117,47 @@ const update = asyncHandler(async (req: Request, res: Response) => {
  * @access Private
  */
 const webHook = asyncHandler(async (req: Request, res: Response) => {
-  console.log(req.body),
-    res.send({
-      message: 'success',
-      data: req.body,
-    });
+  const colabsHash = crypto.createHmac('sha256', chapaWebHookHash).update(JSON.stringify(req.body)).digest('hex');
+  const chapaHash = req.headers['x-chapa-signature'];
+  const { status, tx_ref } = req.body;
+
+  if (colabsHash === chapaHash && status === 'success') {
+    const payment = await Payment.findOne({ txRef: tx_ref });
+    const job = await Job.findById(payment?.jobId);
+    if (!payment) {
+      res.status(404);
+
+      throw new Error('Payment not found');
+    }
+    if (!job) {
+      res.status(404);
+      throw new Error('Job not found');
+    }
+
+    const freelancer = await User.findById(payment?.freelancerId);
+    const jobOwner = await User.findById(payment?.employerId);
+
+    if (!freelancer) {
+      res.status(404);
+      throw new Error('Freelancer not found');
+    }
+
+    if (!jobOwner) {
+      res.status(404);
+      throw new Error('Job owner not found');
+    }
+
+    freelancer.earnings += payment?.amount as number;
+    job.status = JobStatus.Completed;
+    payment.status = PaymentStatus.PAID;
+    await freelancer.save();
+    await job.save();
+
+    res.sendStatus(200);
+  }
+
+  res.status(500);
+  throw new Error('Bad Request');
 });
 
 /**
@@ -130,11 +166,23 @@ const webHook = asyncHandler(async (req: Request, res: Response) => {
  * @access Private/Admin
  */
 const verify = asyncHandler(async (req: Request, res: Response) => {
-  console.log(req.body),
+  const { tnxRef } = req.params as { tnxRef: string };
+  const transaction = await chapa.verify(tnxRef);
+  const payment = await Payment.findOne({
+    txRef: tnxRef,
+  }).select(['-v', '-_id']);
+
+  if (payment) {
     res.send({
       message: 'success',
-      data: req.body,
+      payment,
+      data: transaction,
     });
+    return;
+  }
+
+  res.status(400);
+  throw new Error('No payment with this tnxRef found.');
 });
 
 /**
