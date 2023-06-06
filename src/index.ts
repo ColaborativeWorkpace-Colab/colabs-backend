@@ -6,6 +6,7 @@ import { notFound, errorHandler } from './middleware/errorMiddleware';
 import passportConfig from './config/passport';
 import session from 'express-session';
 import MongoStore from 'connect-mongo';
+import cors from 'cors';
 
 // Messaging
 import { createServer } from 'http';
@@ -41,6 +42,7 @@ const chatIo = new MessagingServer(httpServer, {
 
 // Middleware to accept JSON in body
 app.use(express.json());
+app.use(cors());
 app.use(
   session({
     secret: 'secret',
