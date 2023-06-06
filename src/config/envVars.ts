@@ -20,6 +20,8 @@ const envSchema = Joi.object({
   GITHUB_CALLBACK_URL: Joi.string().required().description('Github callback url'),
   FRONTEND_URL_DEV: Joi.string().required().description('Frontend url dev is required'),
   FRONTEND_URL_PROD: Joi.string().required().description('Frontend url prod is required'),
+  CHAPA_KEY: Joi.string().required().description('Chapa key is required'),
+  CHAPA_WEBHOOK_HASH: Joi.string().required().description('Chapa web hook is required'),
 })
   .unknown()
   .required();
@@ -42,3 +44,5 @@ export const githubClientId = value.GITHUB_CLIENT_ID;
 export const githubClientSecret = value.GITHUB_CLIENT_SECRET;
 export const githubCallbackUrl = value.GITHUB_CALLBACK_URL;
 export const frontendURL = nodeEnv === 'development' ? value.FRONTEND_URL_DEV : value.FRONTEND_URL_PROD;
+export const chapaKey = value.CHAPA_KEY;
+export const chapaWebHookHash = value.CHAPA_WEBHOOK_HASH;

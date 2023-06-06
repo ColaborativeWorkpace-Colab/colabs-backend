@@ -10,7 +10,7 @@ export interface IJob {
   workers: string[];
   pendingworkers: string[];
   requirements: string[];
-  status: string;
+  status: JobStatus;
   owner: string;
   paymentVerified: boolean;
 }
