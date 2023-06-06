@@ -103,6 +103,19 @@ const FreelancerSchema: Schema<IUserDocument, IUserModel> = new Schema(
         },
       },
     },
+    bankAccountInfo: {
+      accountNumber: String,
+      bankCode: String,
+      accountName: String,
+      businessName: String,
+    },
+    subAccountId: {
+      type: String,
+    },
+    earnings: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true },
 );

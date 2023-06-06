@@ -1,7 +1,8 @@
-import { Chapa, SplitType } from 'chapa-nodejs';
+import Chapa from 'chapa-node';
 import { backendURL, chapaKey, frontendURL } from '../config/envVars';
 import asyncHandler from 'express-async-handler';
-import { Request, Response } from 'src/types';
+import { BankAccountInfo, JobStatus, PaymentStatus, Request, Response } from 'src/types';
+import { Job, User, Payment } from 'src/models';
 
 const chapa = new Chapa(chapaKey);
 
@@ -11,29 +12,62 @@ const chapa = new Chapa(chapaKey);
  * @access Private
  */
 const initializePayment = asyncHandler(async (req: Request, res: Response) => {
-  const { firstName, lastName, email, amount } = req.body;
-  const txRef = await chapa.generateTransactionReference();
+  const { jobId, freelancerId } = req.body;
+  const job = await Job.findById(jobId);
+  const jobOwner = await User.findById(job?.owner);
+  const freelancer = await User.findById(freelancerId);
 
-  const response = await chapa.initialize({
-    first_name: firstName,
-    last_name: lastName,
-    email,
-    amount,
-    tx_ref: txRef,
-    currency: 'ETB',
-    return_url: `${frontendURL}/thankyou`,
-    callback_url: `${backendURL}/api/v1/chapa/update/${txRef}`,
-    // todo discuss this at the meeting
-    subaccounts: [
-      {
-        id: 'subaccountId',
-        split_type: SplitType.PERCENTAGE,
-        transaction_charge: 0,
-      },
-    ],
-  });
+  if (job?.owner !== req.user?._id) {
+    res.status(401);
+    throw new Error('Unauthorized');
+  }
 
-  res.send(response);
+  if (job && jobOwner) {
+    const { firstName, lastName, email } = jobOwner;
+    const { earnings } = job;
+    const txRef = chapa.generateTxRef();
+
+    const response = await chapa.initialize({
+      first_name: firstName,
+      last_name: lastName,
+      email,
+      amount: earnings,
+      tx_ref: txRef,
+      currency: 'ETB',
+      return_url: `${frontendURL}/thankyou`,
+      callback_url: `${backendURL}/api/v1/chapa/update/${txRef}`,
+      subaccounts: [
+        {
+          id: freelancer?.subAccountId as string,
+          split_type: 'percentage',
+          transaction_charge: 0.5, // todo update me later
+        },
+      ],
+    });
+
+    await Payment.create({
+      freelancerId,
+      employerId: jobOwner._id,
+      jobId: job._id,
+      amount: earnings,
+      txRef,
+      currency: 'ETB',
+    });
+
+    await job.updateOne({ status: JobStatus.Pending });
+
+    res.send(response);
+  }
+
+  if (!job) {
+    res.status(404);
+    throw new Error('Job not found');
+  }
+
+  if (!jobOwner) {
+    res.status(404);
+    throw new Error('Job owner not found');
+  }
 });
 
 /**
@@ -42,11 +76,39 @@ const initializePayment = asyncHandler(async (req: Request, res: Response) => {
  * @access Private
  */
 const update = asyncHandler(async (req: Request, res: Response) => {
-  console.log(req.body),
-    res.send({
-      message: 'success',
-      data: req.body,
-    });
+  const { tnxRef } = req.params;
+  const payment = await Payment.findOne({ txRef: tnxRef });
+  const job = await Job.findById(payment?.jobId);
+  if (!payment) {
+    res.status(404);
+
+    throw new Error('Payment not found');
+  }
+  if (!job) {
+    res.status(404);
+    throw new Error('Job not found');
+  }
+
+  const freelancer = await User.findById(payment?.freelancerId);
+  const jobOwner = await User.findById(payment?.employerId);
+
+  if (!freelancer) {
+    res.status(404);
+    throw new Error('Freelancer not found');
+  }
+
+  if (!jobOwner) {
+    res.status(404);
+    throw new Error('Job owner not found');
+  }
+
+  freelancer.earnings += payment?.amount as number;
+  job.status = JobStatus.Completed;
+  payment.status = PaymentStatus.PAID;
+  await freelancer.save();
+  await job.save();
+
+  res.sendStatus(200);
 });
 
 /**
@@ -75,4 +137,37 @@ const verify = asyncHandler(async (req: Request, res: Response) => {
     });
 });
 
-export { initializePayment, update, webHook, verify };
+/**
+ * Add Bank Account Info
+ * @route PUT /api/v1/chapa/add-bank-info
+ * @access Private
+ */
+const addBankAccountInfo = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?._id;
+  const { bankAccountInfo } = req.body as { bankAccountInfo: BankAccountInfo };
+
+  const user = await User.findById(userId);
+
+  if (user) {
+    const subAccountId = await chapa.createSubAccount({
+      split_type: 'percentage',
+      split_value: 0.5, // todo update me later
+      business_name: bankAccountInfo.businessName,
+      bank_code: bankAccountInfo.bankCode,
+      account_number: bankAccountInfo.accountNumber,
+      account_name: bankAccountInfo.accountName,
+    });
+
+    const userUpdated = await user.updateOne({ bankAccountInfo, subAccountId });
+
+    if (!userUpdated) throw new Error('Bank account info failed to update');
+
+    res.send({
+      message: 'Bank account info updated',
+    });
+  }
+
+  throw new Error('User not found');
+});
+
+export { initializePayment, update, webHook, verify, addBankAccountInfo };

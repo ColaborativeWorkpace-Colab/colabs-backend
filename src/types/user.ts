@@ -33,6 +33,12 @@ export interface IUser {
   isOnline: boolean;
 }
 
+export interface BankAccountInfo {
+  bankCode: string;
+  accountNumber: string;
+  accountName: string;
+  businessName: string;
+}
 export interface IFreelance extends IUser {
   isVerified: boolean;
   jobs: string[];
@@ -40,6 +46,9 @@ export interface IFreelance extends IUser {
   skills: string[];
   hourlyRate: number;
   permissions: Permission;
+  bankAccountInfo?: BankAccountInfo;
+  subAccountId?: string;
+  earnings: number;
 }
 
 export interface IEmployer extends IUser {

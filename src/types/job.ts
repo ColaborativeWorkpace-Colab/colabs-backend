@@ -9,7 +9,7 @@ export interface IJob {
   earnings: number;
   workers: string[];
   requirements: string[];
-  status: string;
+  status: JobStatus;
   owner: string;
   paymentVerified: boolean;
 }
