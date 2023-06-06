@@ -26,4 +26,5 @@ __exportStar(require("./svtsolution"), exports);
 __exportStar(require("./social"), exports);
 __exportStar(require("./chat"), exports);
 __exportStar(require("./job_application"), exports);
+__exportStar(require("./payment"), exports);
 //# sourceMappingURL=index.js.map
