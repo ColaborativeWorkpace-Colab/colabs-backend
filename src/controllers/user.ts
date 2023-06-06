@@ -362,7 +362,7 @@ const submitRequest = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?._id;
   const { docs, type } = req.body as { docs: RequestDocs[]; type: RequestType };
 
-  await User.create({
+  await RequestModel.create({
     user: userId,
     docs: [...docs],
     status: RequestStatus.INREVIEW,
@@ -381,7 +381,7 @@ const submitRequest = asyncHandler(async (req: Request, res: Response) => {
  */
 const getAllRequestOthers = asyncHandler(async (_req: Request, res: Response) => {
   // TODO: add pagination
-  const requests = await User.find({ status: RequestStatus.INREVIEW });
+  const requests = await RequestModel.find({ status: RequestStatus.INREVIEW });
   res.status(httpStatus.OK).send({ requests });
 });
 
@@ -392,7 +392,7 @@ const getAllRequestOthers = asyncHandler(async (_req: Request, res: Response) =>
  */
 const getAllRequestSelf = asyncHandler(async (_req: Request, res: Response) => {
   // TODO: add pagination
-  const requests = await User.find({ user: _req.user?._id });
+  const requests = await RequestModel.find({ user: _req.user?._id });
   res.status(httpStatus.OK).send({ requests });
 });
 
@@ -403,7 +403,7 @@ const getAllRequestSelf = asyncHandler(async (_req: Request, res: Response) => {
  */
 const getRequestByIdOthers = asyncHandler(async (_req: Request, res: Response) => {
   const { id } = _req.params;
-  const request = await User.findById(id);
+  const request = await RequestModel.findById(id);
   if (!request) res.status(httpStatus.NOT_FOUND).send({ message: 'Request not found' });
   res.status(httpStatus.OK).send({ request });
 });
@@ -415,7 +415,7 @@ const getRequestByIdOthers = asyncHandler(async (_req: Request, res: Response) =
  */
 const getRequestByIdSelf = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const request = await User.findOne({ user: req.user?._id, _id: id });
+  const request = await RequestModel.findOne({ user: req.user?._id, _id: id });
   if (!request) res.status(httpStatus.NOT_FOUND).send({ message: 'Request not found' });
   res.status(httpStatus.OK).send({ request });
 });
@@ -427,7 +427,7 @@ const getRequestByIdSelf = asyncHandler(async (req: Request, res: Response) => {
  */
 const deleteRequestByIdSelf = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const existRequest = await User.findOne({ user: req.user?._id, _id: id });
+  const existRequest = await RequestModel.findOne({ user: req.user?._id, _id: id });
   if (!existRequest) res.status(httpStatus.NOT_FOUND).send({ message: 'Request not found' });
   await User.deleteOne({ user: req.user?._id, _id: id });
   res.status(httpStatus.OK).send({ message: 'Request deleted successfully' });
