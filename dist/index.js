@@ -35,6 +35,7 @@ const errorMiddleware_1 = require("./middleware/errorMiddleware");
 const passport_1 = __importDefault(require("./config/passport"));
 const express_session_1 = __importDefault(require("express-session"));
 const connect_mongo_1 = __importDefault(require("connect-mongo"));
+const cors_1 = __importDefault(require("cors"));
 const http_1 = require("http");
 const socket_io_1 = require("socket.io");
 const messaging_1 = require("./controllers/messaging");
@@ -60,6 +61,7 @@ const chatIo = new socket_io_1.Server(httpServer, {
 });
 exports.chatIo = chatIo;
 app.use(express_1.default.json());
+app.use((0, cors_1.default)());
 app.use((0, express_session_1.default)({
     secret: 'secret',
     resave: true,

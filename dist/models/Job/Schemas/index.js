@@ -21,6 +21,9 @@ const JobSchema = new mongoose_1.default.Schema({
     workers: {
         type: [String],
     },
+    pendingworkers: {
+        type: [String],
+    },
     requirements: {
         type: [String],
     },

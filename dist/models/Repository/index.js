@@ -15,7 +15,9 @@ const repositorySchema = new mongoose_1.default.Schema({
     },
     files: {
         type: [Object],
-        default: [],
+    },
+    members: {
+        type: [String],
     },
     owner: {
         type: String,

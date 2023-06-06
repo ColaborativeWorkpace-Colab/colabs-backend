@@ -26,7 +26,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.assignTask = exports.updateTaskStatus = exports.deleteTasks = exports.editTasks = exports.addTasks = exports.getFileVersions = exports.getProjectFiles = exports.givePermissions = exports.deleteProjectFiles = exports.uploadProjectFiles = exports.deleteProject = exports.createProject = exports.getProjects = void 0;
+exports.addProjectMembers = exports.assignTask = exports.updateTaskStatus = exports.deleteTasks = exports.editTasks = exports.addTasks = exports.getFileVersions = exports.getTrees = exports.getProjectFiles = exports.givePermissions = exports.deleteProjectFiles = exports.uploadProjectFiles = exports.deleteProject = exports.createProject = exports.getProjects = void 0;
 const express_async_handler_1 = __importDefault(require("express-async-handler"));
 const models_1 = require("../models/");
 const octokit_1 = require("octokit");
@@ -54,9 +54,10 @@ const getProjectFiles = (0, express_async_handler_1.default)(async (req, res) =>
     });
     if (repository) {
         const commits = await client.request(`GET /repos/${process.env.GITHUB_ORGANIZATION}/${repository.name}/commits`);
+        const trees = await client.request(`GET /repos/${process.env.GITHUB_ORGANIZATION}/${repository.name}/git/trees/main`);
         res.json({
-            files: repository,
             commits,
+            trees,
         });
     }
     else {
@@ -65,6 +66,24 @@ const getProjectFiles = (0, express_async_handler_1.default)(async (req, res) =>
     }
 });
 exports.getProjectFiles = getProjectFiles;
+const getTrees = (0, express_async_handler_1.default)(async (req, res) => {
+    const { projectId, sha } = req.params;
+    const repository = await models_1.Repository.findById(projectId);
+    const client = new octokit_1.Octokit({
+        auth: process.env.GITHUB_PERSONAL_ACCESS_TOKEN,
+    });
+    if (repository) {
+        const trees = await client.request(`GET /repos/${process.env.GITHUB_ORGANIZATION}/${repository.name}/git/trees/${sha}`);
+        res.json({
+            trees,
+        });
+    }
+    else {
+        res.status(404);
+        throw new Error('Project not found');
+    }
+});
+exports.getTrees = getTrees;
 const getFileVersions = (0, express_async_handler_1.default)(async (req, res) => {
     const { projectId, fileRef } = req.params;
     const repository = await models_1.Repository.findById(projectId);
@@ -90,15 +109,16 @@ const createProject = (0, express_async_handler_1.default)(async (req, res) => {
         auth: process.env.GITHUB_PERSONAL_ACCESS_TOKEN,
     });
     let errorMessage = 'User not found';
+    const projectValidName = projectName.replace(' ', '-');
     if (user) {
         errorMessage = 'Project Creation Failed';
         const repoResponse = await client.request(`POST /orgs/${process.env.GITHUB_ORGANIZATION}/repos`, {
-            name: projectName,
+            name: projectValidName,
             homepage: 'https://github.com',
             private: true,
         });
         if (repoResponse.status === 201) {
-            const repository = await models_1.Repository.create({ name: projectName, owner: userId });
+            const repository = await models_1.Repository.create({ name: projectValidName, owner: userId });
             if (repository) {
                 const permissions = user.permissions;
                 permissions.adminAccess.projects.push(repository.id);
@@ -485,4 +505,50 @@ const assignTask = (0, express_async_handler_1.default)(async (req, res) => {
     throw new Error(errorMessage);
 });
 exports.assignTask = assignTask;
+const addProjectMembers = (0, express_async_handler_1.default)(async (req, res) => {
+    const { projectId } = req.params;
+    const { workerIds } = req.body;
+    const workers = workerIds.split(',');
+    let errorMessage = 'Project not found';
+    let statusCode = 404;
+    let workerIterator = 0;
+    const unverifiedWorkers = [];
+    new Promise((resolve, _reject) => {
+        workers.forEach((workerId) => {
+            workerIterator++;
+            models_1.Freelancer.findById(workerId).then((worker) => {
+                if (worker && !worker.isVerified)
+                    unverifiedWorkers.push(workerId);
+                if (workerIterator === workers.length)
+                    resolve(true);
+            });
+        });
+    }).then(async () => {
+        if (unverifiedWorkers.length === 0) {
+            const project = await models_1.Repository.findById(projectId);
+            if (project) {
+                errorMessage = 'Failed to add members to project';
+                statusCode = 500;
+                const membersAdded = await project.updateOne({ $push: { members: [...workers] } });
+                if (membersAdded) {
+                    res.json({
+                        message: 'Users added to project',
+                    });
+                    return;
+                }
+            }
+        }
+        else {
+            res.status(403);
+            res.json({
+                message: 'There are users that are not verified for work yet. Make sure they are verified and try again.',
+                unverifiedWorkers,
+            });
+            return;
+        }
+        res.status(statusCode);
+        throw new Error(errorMessage);
+    });
+});
+exports.addProjectMembers = addProjectMembers;
 //# sourceMappingURL=workspace.js.map
