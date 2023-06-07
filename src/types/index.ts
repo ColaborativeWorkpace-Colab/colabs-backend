@@ -10,3 +10,4 @@ export * from './svtsolution';
 export * from './social';
 export * from './chat';
 export * from './job_application';
+export * from './payment';

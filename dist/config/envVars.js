@@ -26,7 +26,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.frontendURL = exports.githubCallbackUrl = exports.githubClientSecret = exports.githubClientId = exports.backendURL = exports.appEmailPass = exports.appEmail = exports.googleCallbackUrl = exports.googleClientSecret = exports.googleClientId = exports.mongoUrl = exports.nodeEnv = exports.jwtSecret = exports.port = void 0;
+exports.chapaWebHookHash = exports.chapaKey = exports.frontendURL = exports.githubCallbackUrl = exports.githubClientSecret = exports.githubClientId = exports.backendURL = exports.appEmailPass = exports.appEmail = exports.googleCallbackUrl = exports.googleClientSecret = exports.googleClientId = exports.mongoUrl = exports.nodeEnv = exports.jwtSecret = exports.port = void 0;
 const joi_1 = __importDefault(require("joi"));
 const dotenv = __importStar(require("dotenv"));
 dotenv.config();
@@ -48,6 +48,8 @@ const envSchema = joi_1.default.object({
     GITHUB_CALLBACK_URL: joi_1.default.string().required().description('Github callback url'),
     FRONTEND_URL_DEV: joi_1.default.string().required().description('Frontend url dev is required'),
     FRONTEND_URL_PROD: joi_1.default.string().required().description('Frontend url prod is required'),
+    CHAPA_KEY: joi_1.default.string().required().description('Chapa key is required'),
+    CHAPA_WEBHOOK_HASH: joi_1.default.string().required().description('Chapa web hook is required'),
 })
     .unknown()
     .required();
@@ -68,4 +70,6 @@ exports.githubClientId = value.GITHUB_CLIENT_ID;
 exports.githubClientSecret = value.GITHUB_CLIENT_SECRET;
 exports.githubCallbackUrl = value.GITHUB_CALLBACK_URL;
 exports.frontendURL = exports.nodeEnv === 'development' ? value.FRONTEND_URL_DEV : value.FRONTEND_URL_PROD;
+exports.chapaKey = value.CHAPA_KEY;
+exports.chapaWebHookHash = value.CHAPA_WEBHOOK_HASH;
 //# sourceMappingURL=envVars.js.map

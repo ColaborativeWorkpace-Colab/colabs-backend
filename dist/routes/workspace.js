@@ -11,6 +11,7 @@ router.route('/dashboard/:userId').get(workspace_1.getProjects);
 router.route('/projects').post(workspace_1.createProject);
 router.route('/projects/:projectId/uploadFiles').put(upload_1.fileUploadMulter.any(), workspace_1.uploadProjectFiles);
 router.route('/projects/:projectId').get(workspace_1.getProjectFiles);
+router.route('/projects/:projectId/:sha').get(workspace_1.getTrees);
 router.route('/projects/:projectId/:fileRef').get(workspace_1.getFileVersions);
 router.route('/projects/:projectId/delete').delete(workspace_1.deleteProject);
 router.route('/projects/:projectId/removeFiles').put(workspace_1.deleteProjectFiles);
@@ -20,5 +21,6 @@ router.route('/projects/:projectId/editTask').put(workspace_1.editTasks);
 router.route('/projects/:projectId/deleteTask').put(workspace_1.deleteTasks);
 router.route('/projects/:projectId/updateTaskStatus').put(workspace_1.updateTaskStatus);
 router.route('/projects/:projectId/assignTask').put(workspace_1.assignTask);
+router.route('/projects/:projectId/addMembers').put(workspace_1.addProjectMembers);
 exports.default = router;
 //# sourceMappingURL=workspace.js.map

@@ -7,6 +7,7 @@ import SVTSolution from './SVTSolution';
 import Post from './Post';
 import Chat from './Chat';
 import Request from './Request';
+import Payment from './Payment';
 
 export {
   User,
@@ -21,4 +22,5 @@ export {
   Post,
   Chat,
   Request,
+  Payment,
 };

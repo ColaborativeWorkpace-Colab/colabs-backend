@@ -98,6 +98,19 @@ const FreelancerSchema = new mongoose_1.Schema({
             },
         },
     },
+    bankAccountInfo: {
+        accountNumber: String,
+        bankCode: String,
+        accountName: String,
+        businessName: String,
+    },
+    subAccountId: {
+        type: String,
+    },
+    earnings: {
+        type: Number,
+        default: 0,
+    },
 }, { timestamps: true });
 exports.FreelancerSchema = FreelancerSchema;
 const EmployerSchema = new mongoose_1.Schema({

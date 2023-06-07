@@ -11,7 +11,7 @@ const download_1 = require("../utils/download");
 const types_1 = require("../types");
 const getJobs = (0, express_async_handler_1.default)(async (req, res) => {
     const { userId } = req.params;
-    const jobs = await models_1.Job.find({ status: types_1.JobStatus.Available });
+    const jobs = await models_1.Job.find({ $or: [{ status: types_1.JobStatus.Available }, { status: types_1.JobStatus.Pending }] });
     const user = await models_1.Freelancer.findById(userId);
     if (user) {
         res.json({
@@ -103,14 +103,6 @@ const applyJob = (0, express_async_handler_1.default)(async (req, res) => {
     let errorMessage = worker ? 'User is not verified for jobs' : 'User not found';
     let statusCode = worker ? 403 : 404;
     if (worker && (worker === null || worker === void 0 ? void 0 : worker.isVerified)) {
-        console.log({
-            workerId,
-            jobId,
-            estimatedDeadline,
-            payRate,
-            coverLetter,
-            workBid,
-        });
         const jobApplication = await models_1.JobApplication.create({
             workerId,
             jobId,
@@ -122,10 +114,13 @@ const applyJob = (0, express_async_handler_1.default)(async (req, res) => {
         errorMessage = 'Failed to submit job proposal';
         statusCode = 500;
         if (jobApplication) {
-            res.json({
-                message: 'Your proposal has been sent and is pending for approval',
-            });
-            return;
+            const job = await models_1.Job.findByIdAndUpdate(jobId, { status: 'Pending', $push: { pendingworkers: workerId } });
+            if (job) {
+                res.json({
+                    message: 'Your proposal has been sent and is pending for approval',
+                });
+                return;
+            }
         }
     }
     res.status(statusCode);

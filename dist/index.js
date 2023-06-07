@@ -35,6 +35,7 @@ const errorMiddleware_1 = require("./middleware/errorMiddleware");
 const passport_1 = __importDefault(require("./config/passport"));
 const express_session_1 = __importDefault(require("express-session"));
 const connect_mongo_1 = __importDefault(require("connect-mongo"));
+const cors_1 = __importDefault(require("cors"));
 const http_1 = require("http");
 const socket_io_1 = require("socket.io");
 const messaging_1 = require("./controllers/messaging");
@@ -45,6 +46,7 @@ const jobs_1 = __importDefault(require("./routes/jobs"));
 const profile_1 = __importDefault(require("./routes/profile"));
 const social_1 = __importDefault(require("./routes/social"));
 const messaging_2 = __importDefault(require("./routes/messaging"));
+const chapa_1 = __importDefault(require("./routes/chapa"));
 const morgan_1 = __importDefault(require("morgan"));
 const config_1 = require("./config");
 const passport_2 = __importDefault(require("passport"));
@@ -60,6 +62,7 @@ const chatIo = new socket_io_1.Server(httpServer, {
 });
 exports.chatIo = chatIo;
 app.use(express_1.default.json());
+app.use((0, cors_1.default)());
 app.use((0, express_session_1.default)({
     secret: 'secret',
     resave: true,
@@ -81,6 +84,7 @@ app.use('/api/v1/jobs', jobs_1.default);
 app.use('/api/v1/profile', profile_1.default);
 app.use('/api/v1/social', social_1.default);
 app.use('/api/v1/messaging', messaging_2.default);
+app.use('/api/v1/chapa', chapa_1.default);
 app.use('/uploads', express_1.default.static(path_1.default.join(path_1.default.resolve(), 'uploads')));
 app.use(errorMiddleware_1.notFound);
 app.use(errorMiddleware_1.errorHandler);

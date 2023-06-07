@@ -21,12 +21,16 @@ const JobSchema = new mongoose_1.default.Schema({
     workers: {
         type: [String],
     },
+    pendingworkers: {
+        type: [String],
+    },
     requirements: {
         type: [String],
     },
     status: {
         type: String,
-        default: 'Available',
+        enum: Object.values(types_1.JobStatus),
+        default: types_1.JobStatus.Pending,
     },
     owner: {
         type: String,
@@ -67,6 +71,7 @@ const JobApplicationSchema = new mongoose_1.default.Schema({
     },
     status: {
         type: String,
+        enum: Object.values(types_1.JobApplicationStatus),
         default: types_1.JobApplicationStatus.Pending,
     },
 }, {
