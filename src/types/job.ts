@@ -13,6 +13,7 @@ export interface IJob {
   status: string;
   owner: string;
   paymentVerified: boolean;
+  filesReady: string[];
 }
 
 export interface ICleanJob extends IJob {

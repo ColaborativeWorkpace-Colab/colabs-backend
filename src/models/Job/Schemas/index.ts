@@ -41,6 +41,9 @@ const JobSchema: Schema<IJobDocument, IJobModel> = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    filesReady: {
+      type: [String],
+    },
   },
   {
     timestamps: true, // Automatically create createdAt timestamp

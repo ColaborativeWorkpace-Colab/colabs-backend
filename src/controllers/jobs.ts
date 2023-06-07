@@ -227,12 +227,15 @@ const addTeamMembers = asyncHandler(async (req: Request, res: Response) => {
 
 /**
  * Job Ready
- * @route GET /api/v1/jobs
+ * @route PUT /api/v1/jobs/:jobId/ready
  * @access Private
  */
 const jobReady = asyncHandler(async (req: Request, res: Response) => {
-  const { jobId } = req.params as { jobId: string; workerId: string; recruiterId: string };
-  const job = await Job.findByIdAndUpdate(jobId, { status: JobStatus.Ready });
+  const { jobId } = req.params as { jobId: string };
+  const { projectShas } = req.body as { projectShas: string };
+  const projects = projectShas.split(',');
+  const job = await Job.findByIdAndUpdate(jobId, { status: JobStatus.Ready, filesReady: projects });
+
   let errorMessage = 'Job not found';
 
   if (job) {
@@ -253,6 +256,8 @@ const jobReady = asyncHandler(async (req: Request, res: Response) => {
     throw new Error(errorMessage);
   }
 });
+
+// TODO: Approve job proposal done by the recruiter
 
 /**
  * Download and provide the result files the worker has been tasked to do.
