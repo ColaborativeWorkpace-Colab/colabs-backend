@@ -163,7 +163,9 @@ const addTeamMembers = (0, express_async_handler_1.default)(async (req, res) => 
 exports.addTeamMembers = addTeamMembers;
 const jobReady = (0, express_async_handler_1.default)(async (req, res) => {
     const { jobId } = req.params;
-    const job = await models_1.Job.findByIdAndUpdate(jobId, { status: types_1.JobStatus.Ready });
+    const { projectShas } = req.body;
+    const projects = projectShas.split(',');
+    const job = await models_1.Job.findByIdAndUpdate(jobId, { status: types_1.JobStatus.Ready, filesReady: projects });
     let errorMessage = 'Job not found';
     if (job) {
         const notification = await models_1.Notification.create({

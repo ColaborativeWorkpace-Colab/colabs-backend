@@ -40,6 +40,9 @@ const JobSchema = new mongoose_1.default.Schema({
         type: Boolean,
         default: false,
     },
+    filesReady: {
+        type: [String],
+    },
 }, {
     timestamps: true,
 });

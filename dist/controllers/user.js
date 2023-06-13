@@ -220,7 +220,7 @@ const verifyEmail = (0, express_async_handler_1.default)(async (req, res) => {
                 type: types_1.TokenTypes.ACCESS,
                 expires: '30d',
             });
-            res.redirect(`${config_1.frontendURL}/signup-success/?type=${type}&token=${accessToken.token}`);
+            res.redirect(`${config_1.frontendURL}/verification-success/?type=${type}&token=${accessToken.token}`);
         }
     }
 });
