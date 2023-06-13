@@ -279,7 +279,7 @@ const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
         type: TokenTypes.ACCESS,
         expires: '30d',
       }); // todo change this to match frontend
-      res.redirect(`${frontendURL}/signup-success/?type=${type}&token=${accessToken.token}`);
+      res.redirect(`${frontendURL}/verification-success/?type=${type}&token=${accessToken.token}`);
     }
   }
 });
