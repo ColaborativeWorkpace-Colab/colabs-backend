@@ -230,7 +230,7 @@ const authWithGoogleCallback = asyncHandler(async (req: Request, res: Response, 
  */
 const authWithGoogleRedirect = asyncHandler(async (req: Request, res: Response) => {
   res.cookie('access-token', req.user?.token); // todo change this to match frontend
-  res.redirect(`${frontendURL}/signup-success/?type=${req.user?.type}&token=${req.user?.token}`);
+  res.redirect(`${frontendURL}/verification-success/?type=${req.user?.type}&token=${req.user?.token}`);
 });
 
 /**
@@ -322,7 +322,7 @@ const authWithGithubCallback = asyncHandler(async (req: Request, res: Response, 
  */
 const authWithGithubRedirect = asyncHandler(async (req: Request, res: Response) => {
   res.cookie('access-token', req.user?.token); // todo change this to match frontend
-  res.redirect(`${frontendURL}/signup-success/?type=${req.user?.type}&token=${req.user?.token}`);
+  res.redirect(`${frontendURL}/verification-success/?type=${req.user?.type}&token=${req.user?.token}`);
 });
 
 /**
@@ -449,6 +449,7 @@ const updateRequest = asyncHandler(async (req: Request, res: Response) => {
       res.status(httpStatus.BAD_REQUEST).send({ message: 'Request already approved' });
     request.status = action;
     await request.save();
+    // todo when approved, update user profile
     res.status(httpStatus.OK).send({ message: 'Request updated successfully', request });
   }
 });

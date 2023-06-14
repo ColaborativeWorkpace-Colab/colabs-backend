@@ -42,11 +42,14 @@ const staticMethods = {
    * @returns
    */
   async authUser(this: IUserModel, password: string, email: string) {
-    const user = await this.findOne({ email });
-    if (user && (await user.matchPassword(password))) {
-      const cleanUser = await user.cleanUser();
-      return { ...cleanUser, token: generateToken(user._id) };
-    } else {
+    try {
+      const user = await this.findOne({ email });
+      if (!user) throw new Error('Invalid email or password');
+      if (user.password && (await user.matchPassword(password))) {
+        const cleanUser = await user.cleanUser();
+        return { ...cleanUser, token: generateToken(user._id) };
+      }
+    } catch (error) {
       throw new Error('Invalid email or password');
     }
   },
