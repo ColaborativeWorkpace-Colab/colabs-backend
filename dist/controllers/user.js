@@ -178,7 +178,7 @@ exports.authWithGoogleCallback = authWithGoogleCallback;
 const authWithGoogleRedirect = (0, express_async_handler_1.default)(async (req, res) => {
     var _a, _b, _c;
     res.cookie('access-token', (_a = req.user) === null || _a === void 0 ? void 0 : _a.token);
-    res.redirect(`${config_1.frontendURL}/signup-success/?type=${(_b = req.user) === null || _b === void 0 ? void 0 : _b.type}&token=${(_c = req.user) === null || _c === void 0 ? void 0 : _c.token}`);
+    res.redirect(`${config_1.frontendURL}/verification-success/?type=${(_b = req.user) === null || _b === void 0 ? void 0 : _b.type}&token=${(_c = req.user) === null || _c === void 0 ? void 0 : _c.token}`);
 });
 exports.authWithGoogleRedirect = authWithGoogleRedirect;
 const authWithGoogleMobileRedirect = (0, express_async_handler_1.default)(async (req, res) => {
@@ -246,7 +246,7 @@ exports.authWithGithubCallback = authWithGithubCallback;
 const authWithGithubRedirect = (0, express_async_handler_1.default)(async (req, res) => {
     var _a, _b, _c;
     res.cookie('access-token', (_a = req.user) === null || _a === void 0 ? void 0 : _a.token);
-    res.redirect(`${config_1.frontendURL}/signup-success/?type=${(_b = req.user) === null || _b === void 0 ? void 0 : _b.type}&token=${(_c = req.user) === null || _c === void 0 ? void 0 : _c.token}`);
+    res.redirect(`${config_1.frontendURL}/verification-success/?type=${(_b = req.user) === null || _b === void 0 ? void 0 : _b.type}&token=${(_c = req.user) === null || _c === void 0 ? void 0 : _c.token}`);
 });
 exports.authWithGithubRedirect = authWithGithubRedirect;
 const forgotPassword = (0, express_async_handler_1.default)(async (req, res) => {
