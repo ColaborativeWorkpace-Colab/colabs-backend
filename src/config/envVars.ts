@@ -33,7 +33,7 @@ if (error) throw new Error(`env variables error ${error.message}`);
 export const port = value.PORT;
 export const jwtSecret = value.JWT_SECRET_KEY;
 export const nodeEnv = value.NODE_ENV;
-export const mongoUrl = nodeEnv === 'development' ? value.MONGO_URL_PROD : value.MONGO_URL_DEV;
+export const mongoUrl = nodeEnv === 'development' ? value.MONGO_URL_DEV : value.MONGO_URL_PROD;
 export const googleClientId = value.GOOGLE_CLIENT_ID;
 export const googleClientSecret = value.GOOGLE_CLIENT_SECRET;
 export const googleCallbackUrl = value.GOOGLE_CALLBACK_URL;
