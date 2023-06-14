@@ -24,16 +24,12 @@ const modelMethods = {
 exports.modelMethods = modelMethods;
 const staticMethods = {
     async authUser(password, email) {
-        try {
-            const user = await this.findOne({ email });
-            if (!user)
-                throw new Error('Invalid email or password');
-            if (user.password && (await user.matchPassword(password))) {
-                const cleanUser = await user.cleanUser();
-                return Object.assign(Object.assign({}, cleanUser), { token: (0, generateToken_1.default)(user._id) });
-            }
+        const user = await this.findOne({ email });
+        if (user && user.password && (await user.matchPassword(password))) {
+            const cleanUser = await user.cleanUser();
+            return Object.assign(Object.assign({}, cleanUser), { token: (0, generateToken_1.default)(user._id) });
         }
-        catch (error) {
+        else {
             throw new Error('Invalid email or password');
         }
     },
