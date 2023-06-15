@@ -2,14 +2,14 @@ import { Schema } from 'mongoose';
 import { IUserDocument, IUserModel, LegalInfo } from '../../../types';
 
 export const LegalInfoSchema: Schema<LegalInfo> = new Schema({
-  name: {
-    type: String,
-    required: true,
+  bank: {
+    accountNumber: String,
+    bankCode: String,
+    accountName: String,
+    businessName: String,
   },
-  image: {
-    type: String,
-    required: true,
-  },
+  legalDoc: String,
+  tradeLicense: String,
 });
 
 const UserSchema: Schema<IUserDocument, IUserModel> = new Schema(
@@ -59,6 +59,9 @@ const UserSchema: Schema<IUserDocument, IUserModel> = new Schema(
     lastSeen: {
       type: Date,
     },
+    legalInfo: {
+      type: LegalInfoSchema,
+    },
     imageUrl: String,
     googleId: String,
     emailVerified: Boolean,
@@ -102,12 +105,7 @@ const FreelancerSchema: Schema<IUserDocument, IUserModel> = new Schema(
         },
       },
     },
-    bankAccountInfo: {
-      accountNumber: String,
-      bankCode: String,
-      accountName: String,
-      businessName: String,
-    },
+
     subAccountId: {
       type: String,
     },
@@ -121,9 +119,6 @@ const FreelancerSchema: Schema<IUserDocument, IUserModel> = new Schema(
 
 const EmployerSchema: Schema<IUserDocument, IUserModel> = new Schema(
   {
-    legalInfo: {
-      type: [LegalInfoSchema],
-    },
     companyName: {
       type: String,
     },

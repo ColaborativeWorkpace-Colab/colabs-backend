@@ -6,9 +6,10 @@ const requestValidations = {
     body('type')
       .isIn([RequestType.COMPLAIN, RequestType.VERIFICATION])
       .withMessage('Request type is incorrect or missign'),
-    body('docs').isArray().withMessage('Legal documents should be an array'),
-    body('docs.*.name').isString().withMessage('Legal document name should be a string'),
-    body('docs.*.img').isString().withMessage('Legal document img should be a string'),
+    body('legalInfo').isObject().withMessage('LegalInfo should be an object'),
+    body('legalInfo.bank').isObject().withMessage('LegalInfo bank should be a object'),
+    body('legalInfo.legalDoc').isString().withMessage('LegalInfo legalDoc should be a string'),
+    body('legalInfo.tradeLicense').isString().withMessage('LegalInfo tradeLicense should be a string'),
   ],
   // TODO: update request validation
   updateRequest: [

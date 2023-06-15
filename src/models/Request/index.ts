@@ -1,6 +1,7 @@
 import { Schema, SchemaTypes, model } from 'mongoose';
 import { RequestDocument, RequestModel, RequestType, RequestStatus } from '../../types/request';
 import { modelMethods, staicMethods } from './methods';
+import { LegalInfoSchema } from '../User/Schemas';
 
 const requestSchema: Schema<RequestDocument, RequestModel> = new Schema({
   user: {
@@ -16,13 +17,8 @@ const requestSchema: Schema<RequestDocument, RequestModel> = new Schema({
     default: RequestStatus.INREVIEW,
     enum: Object.values(RequestStatus),
   },
-  docs: {
-    type: [
-      {
-        name: String,
-        img: String,
-      },
-    ],
+  legalInfo: {
+    type: LegalInfoSchema,
   },
 });
 

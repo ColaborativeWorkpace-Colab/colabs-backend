@@ -15,7 +15,9 @@ const uploadController = asyncHandler(async (req: Request, res: Response) => {
   const imgUrl = remotePath.secure_url;
   fs.unlinkSync(`${localPath}/${file?.filename}`);
 
-  res.send(imgUrl);
+  res.send({
+    url: imgUrl,
+  });
 });
 
 router.post('/', imageUploadMulter.single('image'), uploadController);

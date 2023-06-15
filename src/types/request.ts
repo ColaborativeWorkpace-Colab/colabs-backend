@@ -1,4 +1,5 @@
 import { Document, Model, Types } from 'mongoose';
+import { LegalInfo } from './user';
 
 export enum RequestType {
   VERIFICATION = 'VERIFICATION',
@@ -20,7 +21,7 @@ export interface Request {
   user: Types.ObjectId;
   type: RequestType;
   status: string;
-  docs: RequestDocs[];
+  legalInfo: LegalInfo; // todo update me to handle all types of requests
 }
 
 export interface RequestDocument extends Request, Document {}

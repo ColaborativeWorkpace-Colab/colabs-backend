@@ -8,9 +8,9 @@ import { forgotPasswordFormat, verifyEmailFormat } from '../utils/mailFormats';
 import Token from '../models/Token';
 import jwt, { Secret } from 'jsonwebtoken';
 import httpStatus from 'http-status';
-import { Decoded, TokenTypes } from '../types';
+import { Decoded, LegalInfo, TokenTypes } from '../types';
 import { UserDiscriminators, findTypeofUser } from '../utils/finder';
-import { RequestDocs, RequestStatus, RequestType } from '../types/request';
+import { RequestStatus, RequestType } from '../types/request';
 /**
  * Authenticate user and get token
  * @route POST /api/users/login
@@ -18,11 +18,12 @@ import { RequestDocs, RequestStatus, RequestType } from '../types/request';
  */
 const authUser = asyncHandler(async (req: Request, res: Response) => {
   const { email, password } = req.body as { email: string; password: string };
-  const { type } = req.query as { type: UserDiscriminators };
-  const TargetUser = findTypeofUser(type);
-  const user = await TargetUser.authUser(password, email);
+  const user = await User.authUser(password, email);
 
-  res.send(user);
+  res.send({
+    message: 'Signin Successfully.',
+    data: user,
+  });
 });
 
 /**
@@ -34,7 +35,7 @@ const registerUser = asyncHandler(async (req: Request, res: Response) => {
   const { firstName, lastName, email, password } = req.body;
   const { type } = req.query as { type: UserDiscriminators };
   const TargetUser = findTypeofUser(type);
-  const userExists = await TargetUser.findOne({ email });
+  const userExists = await User.findOne({ email });
 
   if (userExists) {
     res.status(400);
@@ -351,8 +352,6 @@ const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
   }
 });
 
-// TODO: need refactoring
-
 /**
  * Request account verification
  * @route POST /api/users/request
@@ -360,14 +359,17 @@ const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
  */
 const submitRequest = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?._id;
-  const { docs, type } = req.body as { docs: RequestDocs[]; type: RequestType };
+  console.log(userId, req.user?._id);
+  const { legalInfo, type } = req.body as { legalInfo: LegalInfo; type: RequestType };
 
-  await RequestModel.create({
+  const newRequest = await RequestModel.create({
     user: userId,
-    docs: [...docs],
+    legalInfo,
     status: RequestStatus.INREVIEW,
     type,
   });
+
+  if (!newRequest) throw new Error('Failed to submit the reques.');
 
   res.status(httpStatus.CREATED).send({
     message: 'Request created successfully',
@@ -429,7 +431,7 @@ const deleteRequestByIdSelf = asyncHandler(async (req: Request, res: Response) =
   const { id } = req.params;
   const existRequest = await RequestModel.findOne({ user: req.user?._id, _id: id });
   if (!existRequest) res.status(httpStatus.NOT_FOUND).send({ message: 'Request not found' });
-  await User.deleteOne({ user: req.user?._id, _id: id });
+  await RequestModel.deleteOne({ user: req.user?._id, _id: id });
   res.status(httpStatus.OK).send({ message: 'Request deleted successfully' });
 });
 
@@ -445,12 +447,36 @@ const updateRequest = asyncHandler(async (req: Request, res: Response) => {
   const request = await RequestModel.findById(id);
   if (!request) res.status(httpStatus.NOT_FOUND).send({ message: 'Request not found' });
   else {
-    if (request?.status === RequestStatus.APPROVED)
-      res.status(httpStatus.BAD_REQUEST).send({ message: 'Request already approved' });
-    request.status = action;
-    await request.save();
-    // todo when approved, update user profile
-    res.status(httpStatus.OK).send({ message: 'Request updated successfully', request });
+    if (request?.status !== RequestStatus.INREVIEW) {
+      res.status(httpStatus.BAD_REQUEST);
+      throw new Error('Request already approved or rejected');
+    }
+    const user = await User.findById(request.user._id);
+    if (!user) {
+      res.status(httpStatus.NOT_FOUND);
+      throw new Error('User not found');
+    }
+
+    if (action === RequestStatus.APPROVED) {
+      user.isVerified = true;
+      user.legalInfo = {
+        ...user.legalInfo,
+        ...request.legalInfo,
+      };
+      await user.save();
+
+      request.status = action;
+      await request.save();
+      res.send({
+        message: 'Request verfied successfully.',
+      });
+    }
+
+    if (action === RequestStatus.REJECTED) {
+      res.send({
+        message: 'Request reject.',
+      });
+    }
   }
 });
 

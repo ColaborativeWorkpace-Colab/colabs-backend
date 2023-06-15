@@ -17,7 +17,6 @@ const userValidators = {
     body('password').optional().isLength({ min: 6 }).withMessage('Password should be at least 6 characters long'),
   ],
   loginUser: [
-    query('type').not().isEmpty().isIn(['Freelancer', 'Employer']).withMessage('User type is incorrect or missign'),
     body('email').isEmail().withMessage('Please include a valid email'),
     body('password').isLength({ min: 6 }).withMessage('Password should be at least 6 characters long'),
   ],

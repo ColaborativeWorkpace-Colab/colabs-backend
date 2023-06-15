@@ -218,4 +218,14 @@ const addBankAccountInfo = asyncHandler(async (req: Request, res: Response) => {
   throw new Error('User not found');
 });
 
-export { initializePayment, update, webHook, verify, addBankAccountInfo };
+/**
+ * Get all Banks
+ * @route PUT /api/v1/chapa/banks
+ * @access Private
+ */
+const getAllBanks = asyncHandler(async (_req: Request, res: Response) => {
+  const banks = await chapa.getBanks();
+  res.send(banks);
+});
+
+export { initializePayment, update, webHook, verify, addBankAccountInfo, getAllBanks };

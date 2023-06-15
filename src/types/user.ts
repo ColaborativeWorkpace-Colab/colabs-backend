@@ -31,6 +31,7 @@ export interface IUser {
   connections: string[];
   lastSeen: Date;
   isOnline: boolean;
+  legalInfo: LegalInfo;
 }
 
 export interface BankAccountInfo {
@@ -46,7 +47,6 @@ export interface IFreelance extends IUser {
   skills: string[];
   hourlyRate: number;
   permissions: Permission;
-  bankAccountInfo?: BankAccountInfo;
   subAccountId?: string;
   earnings: number;
 }
@@ -56,12 +56,12 @@ export interface IEmployer extends IUser {
   jobs: string[];
   reviews: string[];
   companyName?: string;
-  legalInfo: LegalInfo[];
 }
 
 export type LegalInfo = {
-  name: string;
-  image: string;
+  bank: BankAccountInfo;
+  legalDoc: string;
+  tradeLicense: string;
 };
 export interface ICleanUser extends IUser {
   id: string;
