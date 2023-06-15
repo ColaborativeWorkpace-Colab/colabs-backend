@@ -18,17 +18,18 @@ const finder_1 = require("../utils/finder");
 const request_1 = require("../types/request");
 const authUser = (0, express_async_handler_1.default)(async (req, res) => {
     const { email, password } = req.body;
-    const { type } = req.query;
-    const TargetUser = (0, finder_1.findTypeofUser)(type);
-    const user = await TargetUser.authUser(password, email);
-    res.send(user);
+    const user = await models_1.User.authUser(password, email);
+    res.send({
+        message: 'Signin Successfully.',
+        data: user,
+    });
 });
 exports.authUser = authUser;
 const registerUser = (0, express_async_handler_1.default)(async (req, res) => {
     const { firstName, lastName, email, password } = req.body;
     const { type } = req.query;
     const TargetUser = (0, finder_1.findTypeofUser)(type);
-    const userExists = await TargetUser.findOne({ email });
+    const userExists = await models_1.User.findOne({ email });
     if (userExists) {
         res.status(400);
         throw new Error('User already exists with this email');
@@ -272,15 +273,18 @@ const forgotPassword = (0, express_async_handler_1.default)(async (req, res) => 
 });
 exports.forgotPassword = forgotPassword;
 const submitRequest = (0, express_async_handler_1.default)(async (req, res) => {
-    var _a;
+    var _a, _b;
     const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
-    const { docs, type } = req.body;
-    await models_1.Request.create({
+    console.log(userId, (_b = req.user) === null || _b === void 0 ? void 0 : _b._id);
+    const { legalInfo, type } = req.body;
+    const newRequest = await models_1.Request.create({
         user: userId,
-        docs: [...docs],
+        legalInfo,
         status: request_1.RequestStatus.INREVIEW,
         type,
     });
+    if (!newRequest)
+        throw new Error('Failed to submit the reques.');
     res.status(http_status_1.default.CREATED).send({
         message: 'Request created successfully',
     });
@@ -320,7 +324,7 @@ const deleteRequestByIdSelf = (0, express_async_handler_1.default)(async (req, r
     const existRequest = await models_1.Request.findOne({ user: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id, _id: id });
     if (!existRequest)
         res.status(http_status_1.default.NOT_FOUND).send({ message: 'Request not found' });
-    await models_1.User.deleteOne({ user: (_b = req.user) === null || _b === void 0 ? void 0 : _b._id, _id: id });
+    await models_1.Request.deleteOne({ user: (_b = req.user) === null || _b === void 0 ? void 0 : _b._id, _id: id });
     res.status(http_status_1.default.OK).send({ message: 'Request deleted successfully' });
 });
 exports.deleteRequestByIdSelf = deleteRequestByIdSelf;
@@ -331,11 +335,30 @@ const updateRequest = (0, express_async_handler_1.default)(async (req, res) => {
     if (!request)
         res.status(http_status_1.default.NOT_FOUND).send({ message: 'Request not found' });
     else {
-        if ((request === null || request === void 0 ? void 0 : request.status) === request_1.RequestStatus.APPROVED)
-            res.status(http_status_1.default.BAD_REQUEST).send({ message: 'Request already approved' });
-        request.status = action;
-        await request.save();
-        res.status(http_status_1.default.OK).send({ message: 'Request updated successfully', request });
+        if ((request === null || request === void 0 ? void 0 : request.status) !== request_1.RequestStatus.INREVIEW) {
+            res.status(http_status_1.default.BAD_REQUEST);
+            throw new Error('Request already approved or rejected');
+        }
+        const user = await models_1.User.findById(request.user._id);
+        if (!user) {
+            res.status(http_status_1.default.NOT_FOUND);
+            throw new Error('User not found');
+        }
+        if (action === request_1.RequestStatus.APPROVED) {
+            user.isVerified = true;
+            user.legalInfo = Object.assign(Object.assign({}, user.legalInfo), request.legalInfo);
+            await user.save();
+            request.status = action;
+            await request.save();
+            res.send({
+                message: 'Request verfied successfully.',
+            });
+        }
+        if (action === request_1.RequestStatus.REJECTED) {
+            res.send({
+                message: 'Request reject.',
+            });
+        }
     }
 });
 exports.updateRequest = updateRequest;

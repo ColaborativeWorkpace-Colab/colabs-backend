@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = require("mongoose");
 const request_1 = require("../../types/request");
 const methods_1 = require("./methods");
+const Schemas_1 = require("../User/Schemas");
 const requestSchema = new mongoose_1.Schema({
     user: {
         type: mongoose_1.SchemaTypes.ObjectId,
@@ -17,13 +18,8 @@ const requestSchema = new mongoose_1.Schema({
         default: request_1.RequestStatus.INREVIEW,
         enum: Object.values(request_1.RequestStatus),
     },
-    docs: {
-        type: [
-            {
-                name: String,
-                img: String,
-            },
-        ],
+    legalInfo: {
+        type: Schemas_1.LegalInfoSchema,
     },
 });
 requestSchema.method(methods_1.modelMethods);

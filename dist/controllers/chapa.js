@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.addBankAccountInfo = exports.verify = exports.webHook = exports.update = exports.initializePayment = void 0;
+exports.getAllBanks = exports.addBankAccountInfo = exports.verify = exports.webHook = exports.update = exports.initializePayment = void 0;
 const chapa_node_1 = __importDefault(require("chapa-node"));
 const envVars_1 = require("../config/envVars");
 const express_async_handler_1 = __importDefault(require("express-async-handler"));
@@ -171,4 +171,9 @@ const addBankAccountInfo = (0, express_async_handler_1.default)(async (req, res)
     throw new Error('User not found');
 });
 exports.addBankAccountInfo = addBankAccountInfo;
+const getAllBanks = (0, express_async_handler_1.default)(async (_req, res) => {
+    const banks = await chapa.getBanks();
+    res.send(banks);
+});
+exports.getAllBanks = getAllBanks;
 //# sourceMappingURL=chapa.js.map

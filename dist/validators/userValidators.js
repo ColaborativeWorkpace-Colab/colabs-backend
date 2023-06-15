@@ -18,7 +18,6 @@ const userValidators = {
         (0, express_validator_1.body)('password').optional().isLength({ min: 6 }).withMessage('Password should be at least 6 characters long'),
     ],
     loginUser: [
-        (0, express_validator_1.query)('type').not().isEmpty().isIn(['Freelancer', 'Employer']).withMessage('User type is incorrect or missign'),
         (0, express_validator_1.body)('email').isEmail().withMessage('Please include a valid email'),
         (0, express_validator_1.body)('password').isLength({ min: 6 }).withMessage('Password should be at least 6 characters long'),
     ],

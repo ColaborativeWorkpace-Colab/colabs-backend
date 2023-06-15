@@ -3,14 +3,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserSchema = exports.EmployerSchema = exports.FreelancerSchema = exports.LegalInfoSchema = void 0;
 const mongoose_1 = require("mongoose");
 exports.LegalInfoSchema = new mongoose_1.Schema({
-    name: {
-        type: String,
-        required: true,
+    bank: {
+        accountNumber: String,
+        bankCode: String,
+        accountName: String,
+        businessName: String,
     },
-    image: {
-        type: String,
-        required: true,
-    },
+    legalDoc: String,
+    tradeLicense: String,
 });
 const UserSchema = new mongoose_1.Schema({
     firstName: {
@@ -58,6 +58,9 @@ const UserSchema = new mongoose_1.Schema({
     lastSeen: {
         type: Date,
     },
+    legalInfo: {
+        type: exports.LegalInfoSchema,
+    },
     imageUrl: String,
     googleId: String,
     emailVerified: Boolean,
@@ -98,12 +101,6 @@ const FreelancerSchema = new mongoose_1.Schema({
             },
         },
     },
-    bankAccountInfo: {
-        accountNumber: String,
-        bankCode: String,
-        accountName: String,
-        businessName: String,
-    },
     subAccountId: {
         type: String,
     },
@@ -114,9 +111,6 @@ const FreelancerSchema = new mongoose_1.Schema({
 }, { timestamps: true });
 exports.FreelancerSchema = FreelancerSchema;
 const EmployerSchema = new mongoose_1.Schema({
-    legalInfo: {
-        type: [exports.LegalInfoSchema],
-    },
     companyName: {
         type: String,
     },

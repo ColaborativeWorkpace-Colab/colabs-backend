@@ -11,5 +11,6 @@ const errorMiddleware_1 = require("../middleware/errorMiddleware");
 const route = express_1.default.Router();
 route.post('/init', chapaValidator_1.default.init, errorMiddleware_1.parseValidationError, authMiddleware_1.protect, chapa_1.initializePayment);
 route.put('/add-bank-info', chapaValidator_1.default.addBankInfo, errorMiddleware_1.parseValidationError, authMiddleware_1.protect, chapa_1.addBankAccountInfo);
+route.get('/banks', chapa_1.getAllBanks);
 exports.default = route;
 //# sourceMappingURL=chapa.js.map

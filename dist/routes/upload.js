@@ -16,7 +16,9 @@ const uploadController = (0, express_async_handler_1.default)(async (req, res) =
     const remotePath = await uploader(`${localPath}/${file === null || file === void 0 ? void 0 : file.filename}`);
     const imgUrl = remotePath.secure_url;
     fs_1.default.unlinkSync(`${localPath}/${file === null || file === void 0 ? void 0 : file.filename}`);
-    res.send(imgUrl);
+    res.send({
+        url: imgUrl,
+    });
 });
 router.post('/', utils_1.imageUploadMulter.single('image'), uploadController);
 exports.default = router;
