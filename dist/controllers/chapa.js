@@ -3,14 +3,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAllBanks = exports.addBankAccountInfo = exports.verify = exports.webHook = exports.update = exports.initializePayment = void 0;
+exports.getAllBanks = exports.addBankAccountInfo = exports.verify = exports.webHook = exports.update = exports.initializePayment = exports.chapa = void 0;
 const chapa_node_1 = __importDefault(require("chapa-node"));
 const envVars_1 = require("../config/envVars");
 const express_async_handler_1 = __importDefault(require("express-async-handler"));
 const types_1 = require("../types");
 const models_1 = require("../models");
 const crypto_1 = __importDefault(require("crypto"));
-const chapa = new chapa_node_1.default(envVars_1.chapaKey);
+exports.chapa = new chapa_node_1.default(envVars_1.chapaKey);
 const initializePayment = (0, express_async_handler_1.default)(async (req, res) => {
     var _a;
     const { jobId, freelancerId } = req.body;
@@ -24,8 +24,8 @@ const initializePayment = (0, express_async_handler_1.default)(async (req, res) 
     if (job && jobOwner) {
         const { firstName, lastName, email } = jobOwner;
         const { earnings } = job;
-        const txRef = chapa.generateTxRef();
-        const response = await chapa.initialize({
+        const txRef = exports.chapa.generateTxRef();
+        const response = await exports.chapa.initialize({
             first_name: firstName,
             last_name: lastName,
             email,
@@ -131,7 +131,7 @@ const webHook = (0, express_async_handler_1.default)(async (req, res) => {
 exports.webHook = webHook;
 const verify = (0, express_async_handler_1.default)(async (req, res) => {
     const { tnxRef } = req.params;
-    const transaction = await chapa.verify(tnxRef);
+    const transaction = await exports.chapa.verify(tnxRef);
     const payment = await models_1.Payment.findOne({
         txRef: tnxRef,
     }).select(['-v', '-_id']);
@@ -153,7 +153,7 @@ const addBankAccountInfo = (0, express_async_handler_1.default)(async (req, res)
     const { bankAccountInfo } = req.body;
     const user = await models_1.User.findById(userId);
     if (user) {
-        const subAccountId = await chapa.createSubAccount({
+        const subAccountId = await exports.chapa.createSubAccount({
             split_type: 'percentage',
             split_value: 0.5,
             business_name: bankAccountInfo.businessName,
@@ -172,7 +172,7 @@ const addBankAccountInfo = (0, express_async_handler_1.default)(async (req, res)
 });
 exports.addBankAccountInfo = addBankAccountInfo;
 const getAllBanks = (0, express_async_handler_1.default)(async (_req, res) => {
-    const banks = await chapa.getBanks();
+    const banks = await exports.chapa.getBanks();
     res.send(banks);
 });
 exports.getAllBanks = getAllBanks;

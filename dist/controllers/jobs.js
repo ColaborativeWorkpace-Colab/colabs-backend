@@ -3,31 +3,52 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.downloadJobResultPackage = exports.jobReady = exports.addTeamMembers = exports.applyJob = exports.completeJob = exports.deleteJob = exports.postJob = exports.getJobs = void 0;
+exports.getAllApplications = exports.applicationApprove = exports.getJobsPublic = exports.getJobDetail = exports.downloadJobResultPackage = exports.jobReady = exports.addTeamMembers = exports.applyJob = exports.completeJob = exports.deleteJob = exports.postJob = exports.getJobsSelf = void 0;
 const express_async_handler_1 = __importDefault(require("express-async-handler"));
 const models_1 = require("../models");
 const octokit_1 = require("octokit");
 const download_1 = require("../utils/download");
 const types_1 = require("../types");
-const getJobs = (0, express_async_handler_1.default)(async (req, res) => {
-    const { userId } = req.params;
+const config_1 = require("../config");
+const mailFormats_1 = require("../utils/mailFormats");
+const getJobsSelf = (0, express_async_handler_1.default)(async (req, res) => {
+    var _a;
+    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+    const jobs = await models_1.Job.find({ $or: [{ status: types_1.JobStatus.Available }, { status: types_1.JobStatus.Pending }], owner: userId });
+    res.json({
+        jobs,
+    });
+});
+exports.getJobsSelf = getJobsSelf;
+const getJobsPublic = (0, express_async_handler_1.default)(async (_req, res) => {
     const jobs = await models_1.Job.find({ $or: [{ status: types_1.JobStatus.Available }, { status: types_1.JobStatus.Pending }] });
-    const user = await models_1.Freelancer.findById(userId);
-    if (user) {
+    res.json({
+        jobs,
+    });
+});
+exports.getJobsPublic = getJobsPublic;
+const getJobDetail = (0, express_async_handler_1.default)(async (_req, res) => {
+    const jobId = _req.params.jobId;
+    const job = await models_1.Job.findById(jobId);
+    const applications = await models_1.JobApplication.find({ jobId }).populate('workerId').populate('jobId');
+    if (job) {
         res.json({
-            jobs,
+            job,
+            applications,
         });
     }
     else {
         res.status(404);
-        throw new Error('User not found');
+        throw new Error('Job not found');
     }
 });
-exports.getJobs = getJobs;
+exports.getJobDetail = getJobDetail;
 const postJob = (0, express_async_handler_1.default)(async (req, res) => {
-    const { recruiterId, title, description, requirements, earnings } = req.body;
+    var _a;
+    const recruiterId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+    const { title, description, requirements, earnings } = req.body;
     const employer = await models_1.Employer.findById(recruiterId);
-    let errorMessage = 'User not found';
+    let errorMessage = 'User not found or not an employer';
     if (employer) {
         errorMessage =
             'Your account does not yet have access to this feature. Complete your profile verification to proceed.';
@@ -37,7 +58,7 @@ const postJob = (0, express_async_handler_1.default)(async (req, res) => {
                 title,
                 description,
                 earnings,
-                requirements: requirements.split(','),
+                requirements,
                 owner: recruiterId,
             });
             if (job) {
@@ -97,24 +118,40 @@ const completeJob = (0, express_async_handler_1.default)(async (req, res) => {
 });
 exports.completeJob = completeJob;
 const applyJob = (0, express_async_handler_1.default)(async (req, res) => {
+    var _a;
+    const workerId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
     const { jobId } = req.params;
-    const { workerId, estimatedDeadline, payRate, coverLetter, workBid } = req.body;
-    const worker = await models_1.Freelancer.findById(workerId);
+    const { coverLetter } = req.body;
+    const job = await models_1.Job.findById(jobId);
+    const worker = await models_1.User.findById(workerId);
     let errorMessage = worker ? 'User is not verified for jobs' : 'User not found';
+    if (!job)
+        errorMessage = 'Job not found.';
     let statusCode = worker ? 403 : 404;
-    if (worker && (worker === null || worker === void 0 ? void 0 : worker.isVerified)) {
+    const alreadyApplied = await models_1.JobApplication.findOne({
+        jobId: job === null || job === void 0 ? void 0 : job._id,
+        workerId: worker === null || worker === void 0 ? void 0 : worker._id,
+    });
+    if ((job === null || job === void 0 ? void 0 : job.owner.toString()) === (workerId === null || workerId === void 0 ? void 0 : workerId.toString()))
+        throw new Error('You can`t apply to your own job');
+    if (alreadyApplied)
+        throw new Error('Already applied for this job');
+    if (worker) {
         const jobApplication = await models_1.JobApplication.create({
             workerId,
             jobId,
-            estimatedDeadline,
-            payRate,
             coverLetter,
-            workBid,
         });
         errorMessage = 'Failed to submit job proposal';
         statusCode = 500;
         if (jobApplication) {
             const job = await models_1.Job.findByIdAndUpdate(jobId, { status: 'Pending', $push: { pendingworkers: workerId } });
+            const jobApplicationNotification = {
+                title: `Your job has new application`,
+                message: `${worker === null || worker === void 0 ? void 0 : worker.firstName} has applied to your job.`,
+                userId: worker,
+            };
+            await models_1.Notification.create(jobApplicationNotification);
             if (job) {
                 res.json({
                     message: 'Your proposal has been sent and is pending for approval',
@@ -131,12 +168,12 @@ const applyJob = (0, express_async_handler_1.default)(async (req, res) => {
 exports.applyJob = applyJob;
 const addTeamMembers = (0, express_async_handler_1.default)(async (req, res) => {
     const { jobId } = req.params;
-    const { ownerName, team } = req.body;
-    const teamMembers = team.split(',');
+    const { team } = req.body;
     const job = await models_1.Job.findById(jobId);
+    const jobOwner = await models_1.User.findById(job === null || job === void 0 ? void 0 : job.owner);
     let errorMessage = 'Job not found';
     if (job) {
-        const workers = [...job.workers, ...teamMembers];
+        const workers = [...job.workers, ...team];
         const newMembersAdded = await models_1.Job.findByIdAndUpdate(jobId, { workers });
         errorMessage = 'Failed to add new members.';
         if (newMembersAdded) {
@@ -144,7 +181,7 @@ const addTeamMembers = (0, express_async_handler_1.default)(async (req, res) => 
             const pendingNotifications = workers.map((worker) => {
                 return {
                     title: `Joined a job team`,
-                    message: `${ownerName} has added you to work on their job as a team.`,
+                    message: `${jobOwner === null || jobOwner === void 0 ? void 0 : jobOwner.firstName} has added you to work on their job as a team.`,
                     userId: worker,
                 };
             });
@@ -213,4 +250,84 @@ const downloadJobResultPackage = (0, express_async_handler_1.default)(async (req
     }
 });
 exports.downloadJobResultPackage = downloadJobResultPackage;
+const getAllApplications = (0, express_async_handler_1.default)(async (req, res) => {
+    const { jobId } = req.body;
+    const job = await models_1.Job.findById(jobId);
+    if (!job)
+        throw new Error('Job not found.');
+    const applications = await models_1.JobApplication.find({
+        jobId,
+    }).populate('workerId');
+    res.send({
+        message: 'List of applicants',
+        applications,
+    });
+});
+exports.getAllApplications = getAllApplications;
+const applicationApprove = (0, express_async_handler_1.default)(async (req, res) => {
+    var _a;
+    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+    const { applicationId } = req.params;
+    const { action } = req.body;
+    const jobApplication = await models_1.JobApplication.findById(applicationId).populate('workerId');
+    const job = await models_1.Job.findById(jobApplication === null || jobApplication === void 0 ? void 0 : jobApplication.jobId);
+    const worker = await models_1.User.findById(jobApplication === null || jobApplication === void 0 ? void 0 : jobApplication.workerId);
+    let errorMessage = 'Error';
+    if (!job)
+        errorMessage = 'Job not found';
+    if (!jobApplication)
+        throw new Error('Job application not found');
+    if (jobApplication.status !== types_1.JobApplicationStatus.Pending)
+        throw new Error(`Job application already ${jobApplication.status}`);
+    if (userId === jobApplication.workerId) {
+        throw new Error(`You can't ${action} your own job`);
+    }
+    if (jobApplication && job) {
+        if (action === types_1.JobApplicationStatus.Accepted) {
+            jobApplication.status = types_1.JobApplicationStatus.Accepted;
+            await jobApplication.save();
+            const link = `${config_1.frontendURL}/freelancer/jobs/${jobApplication.jobId}`;
+            await config_1.transport.sendMail({
+                to: worker === null || worker === void 0 ? void 0 : worker.email,
+                from: config_1.appEmail,
+                subject: 'Job application approved.',
+                html: (0, mailFormats_1.acceptJobApplicationFormat)(job === null || job === void 0 ? void 0 : job.title, link),
+            });
+            res.send({
+                message: 'Job application approved.',
+            });
+            return;
+        }
+        if (action === types_1.JobApplicationStatus.Rejected) {
+            jobApplication.status = types_1.JobApplicationStatus.Rejected;
+            const link = `${config_1.frontendURL}/jobs/${jobApplication.jobId}`;
+            await jobApplication.save();
+            await config_1.transport.sendMail({
+                to: worker === null || worker === void 0 ? void 0 : worker.email,
+                from: config_1.appEmail,
+                subject: 'Job application rejected.',
+                html: (0, mailFormats_1.rejectJobApplicationFormat)(job === null || job === void 0 ? void 0 : job.title, link),
+            });
+            res.send({
+                message: 'Job application rejected.',
+            });
+            return;
+        }
+        if (action === types_1.JobApplicationStatus.Cancelled) {
+            if (userId === jobApplication.workerId) {
+                jobApplication.status = types_1.JobApplicationStatus.Cancelled;
+                await jobApplication.save();
+                res.send({
+                    message: 'You canceled your job application.',
+                });
+                return;
+            }
+        }
+    }
+    else {
+        res.status(404);
+        throw new Error(errorMessage);
+    }
+});
+exports.applicationApprove = applicationApprove;
 //# sourceMappingURL=jobs.js.map

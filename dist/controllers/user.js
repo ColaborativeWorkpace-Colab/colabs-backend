@@ -16,6 +16,7 @@ const http_status_1 = __importDefault(require("http-status"));
 const types_1 = require("../types");
 const finder_1 = require("../utils/finder");
 const request_1 = require("../types/request");
+const chapa_1 = require("./chapa");
 const authUser = (0, express_async_handler_1.default)(async (req, res) => {
     const { email, password } = req.body;
     const user = await models_1.User.authUser(password, email);
@@ -291,7 +292,7 @@ const submitRequest = (0, express_async_handler_1.default)(async (req, res) => {
 });
 exports.submitRequest = submitRequest;
 const getAllRequestOthers = (0, express_async_handler_1.default)(async (_req, res) => {
-    const requests = await models_1.Request.find({ status: request_1.RequestStatus.INREVIEW });
+    const requests = await models_1.Request.find({ status: request_1.RequestStatus.INREVIEW }).populate('user');
     res.status(http_status_1.default.OK).send({ requests });
 });
 exports.getAllRequestOthers = getAllRequestOthers;
@@ -347,6 +348,17 @@ const updateRequest = (0, express_async_handler_1.default)(async (req, res) => {
         if (action === request_1.RequestStatus.APPROVED) {
             user.isVerified = true;
             user.legalInfo = Object.assign(Object.assign({}, user.legalInfo), request.legalInfo);
+            if (user.baseModelName === 'Freelancer') {
+                const subAccountId = await chapa_1.chapa.createSubAccount({
+                    split_type: 'percentage',
+                    split_value: 0.5,
+                    business_name: request.legalInfo.bank.businessName,
+                    bank_code: request.legalInfo.bank.bankCode,
+                    account_number: request.legalInfo.bank.accountNumber,
+                    account_name: request.legalInfo.bank.accountName,
+                });
+                user.subAccountId = subAccountId;
+            }
             await user.save();
             request.status = action;
             await request.save();
