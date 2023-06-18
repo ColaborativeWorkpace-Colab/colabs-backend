@@ -12,6 +12,7 @@ import {
   getJobsPublic,
   applicationApprove,
   getAllApplications,
+  getApplication,
 } from '../controllers/jobs';
 import jobValidation from '../validators/jobValidator';
 import { parseValidationError } from '../middleware/errorMiddleware';
@@ -32,8 +33,12 @@ router.route('/delete/:jobId').delete(deleteJob);
 router.route('/download').get(downloadJobResultPackage);
 
 // applications
-router.route('/applications').get(jobValidation.getAllApplication, parseValidationError, protect, getAllApplications);
+router
+  .route('/applications/list/:jobId')
+  .get(jobValidation.getAllApplication, parseValidationError, protect, getAllApplications);
 router
   .route('/applications/:applicationId')
+  .get(jobValidation.signleApplication, parseValidationError, protect, getApplication)
   .put(jobValidation.applicationApprove, parseValidationError, protect, applicationApprove);
+
 export default router;

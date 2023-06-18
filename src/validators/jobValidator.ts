@@ -21,7 +21,11 @@ const jobValidation = {
       .withMessage('Job Application actions is incorrect or missign'),
   ],
 
-  getAllApplication: [body('jobId').not().isEmpty().isMongoId().withMessage('jobId is required')],
+  signleApplication: [
+    param('applicationId').not().isEmpty().isMongoId().withMessage('ApplicationId param is required'),
+  ],
+
+  getAllApplication: [param('jobId').not().isEmpty().isMongoId().withMessage('jobId is required')],
   team: [
     param('jobId').not().isEmpty().isMongoId().withMessage('JobId param is required'),
     body('team').not().isEmpty().isArray().withMessage('team is required to have atleast one element in the array'),

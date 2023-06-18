@@ -343,7 +343,7 @@ const downloadJobResultPackage = asyncHandler(async (req: Request, res: Response
  * @access Private
  */
 const getAllApplications = asyncHandler(async (req: Request, res: Response) => {
-  const { jobId } = req.body as { jobId: string };
+  const { jobId } = req.params as { jobId: string };
 
   const job = await Job.findById(jobId);
   if (!job) throw new Error('Job not found.');
@@ -430,6 +430,22 @@ const applicationApprove = asyncHandler(async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * Get single application
+ * @route get /api/v1/jobs/applications/:applicationId
+ * @access Private
+ */
+const getApplication = asyncHandler(async (req: Request, res: Response) => {
+  const { applicationId } = req.params as { applicationId: string };
+  const application = await JobApplication.findById(applicationId).populate('workerId');
+
+  if (!application) throw new Error('Job application not found');
+  res.send({
+    application,
+  });
+  return;
+});
+
 export {
   getJobsSelf,
   postJob,
@@ -443,4 +459,5 @@ export {
   getJobsPublic,
   applicationApprove,
   getAllApplications,
+  getApplication,
 };
