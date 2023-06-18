@@ -75,26 +75,26 @@ const postJob = asyncHandler(async (req: Request, res: Response) => {
   const employer = await Employer.findById(recruiterId);
   let errorMessage = 'User not found or not an employer';
   if (employer) {
-    errorMessage =
-      'Your account does not yet have access to this feature. Complete your profile verification to proceed.';
+    // errorMessage =
+    //   'Your account does not yet have access to this feature. Complete your profile verification to proceed.';
 
-    if (employer.isVerified) {
-      errorMessage = 'Job Posting Failed';
-      const job = await Job.create({
-        title,
-        description,
-        earnings,
-        requirements,
-        owner: recruiterId,
+    // if (employer.isVerified) {
+    errorMessage = 'Job Posting Failed';
+    const job = await Job.create({
+      title,
+      description,
+      earnings,
+      requirements,
+      owner: recruiterId,
+    });
+
+    if (job) {
+      res.json({
+        message: `The ${title} job is successfully posted.`,
       });
-
-      if (job) {
-        res.json({
-          message: `The ${title} job is successfully posted.`,
-        });
-        return;
-      }
+      return;
     }
+    // }
   }
 
   res.status(404);
