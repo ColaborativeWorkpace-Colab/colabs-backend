@@ -5,7 +5,7 @@ import { BankAccountInfo, JobStatus, PaymentStatus, Request, Response } from '..
 import { Job, User, Payment } from '../models';
 import crypto from 'crypto';
 
-const chapa = new Chapa(chapaKey);
+export const chapa = new Chapa(chapaKey);
 
 /**
  * Initialize or start payment process

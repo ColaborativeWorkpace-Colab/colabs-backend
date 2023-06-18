@@ -11,6 +11,7 @@ import httpStatus from 'http-status';
 import { Decoded, LegalInfo, TokenTypes } from '../types';
 import { UserDiscriminators, findTypeofUser } from '../utils/finder';
 import { RequestStatus, RequestType } from '../types/request';
+import { chapa } from './chapa';
 /**
  * Authenticate user and get token
  * @route POST /api/users/login
@@ -383,7 +384,7 @@ const submitRequest = asyncHandler(async (req: Request, res: Response) => {
  */
 const getAllRequestOthers = asyncHandler(async (_req: Request, res: Response) => {
   // TODO: add pagination
-  const requests = await RequestModel.find({ status: RequestStatus.INREVIEW });
+  const requests = await RequestModel.find({ status: RequestStatus.INREVIEW }).populate('user');
   res.status(httpStatus.OK).send({ requests });
 });
 
@@ -463,6 +464,18 @@ const updateRequest = asyncHandler(async (req: Request, res: Response) => {
         ...user.legalInfo,
         ...request.legalInfo,
       };
+      if (user.baseModelName === 'Freelancer') {
+        const subAccountId = await chapa.createSubAccount({
+          split_type: 'percentage',
+          split_value: 0.5, // todo update me later
+          business_name: request.legalInfo.bank.businessName,
+          bank_code: request.legalInfo.bank.bankCode,
+          account_number: request.legalInfo.bank.accountNumber,
+          account_name: request.legalInfo.bank.accountName,
+        });
+        user.subAccountId = subAccountId as string;
+      }
+
       await user.save();
 
       request.status = action;

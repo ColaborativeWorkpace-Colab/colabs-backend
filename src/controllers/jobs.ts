@@ -1,28 +1,59 @@
 import { Request, Response } from '../types/express';
 import asyncHandler from 'express-async-handler';
-import { Job, JobApplication, Freelancer, Notification, Employer } from '../models';
+import { Job, JobApplication, Notification, Employer, User } from '../models';
 import { Octokit } from 'octokit';
 import { getFilesfromRepo } from '../utils/download';
-import { JobStatus } from '../types';
+import { JobApplicationStatus, JobStatus } from '../types';
+import { appEmail, frontendURL, transport } from '../config';
+import { acceptJobApplicationFormat, rejectJobApplicationFormat } from '../utils/mailFormats';
 
 // NOTE: When manipulating a job info, only the owner has accessPending, Completed, Active, Ready, Available
 /**
- * Get Jobs
- * @route GET /api/v1/jobs/:userId
+ * Get Jobs self
+ * @route GET /api/v1/jobs/self
+ * @access Private
+ */
+const getJobsSelf = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?._id;
+  const jobs = await Job.find({ $or: [{ status: JobStatus.Available }, { status: JobStatus.Pending }], owner: userId });
+
+  // todo add pagination
+  res.json({
+    jobs,
+  });
+});
+
+/**
+ * Get Jobs public (for freelancers)
+ * @route GET /api/v1/jobs
  * @access Public
  */
-const getJobs = asyncHandler(async (req: Request, res: Response) => {
-  const { userId } = req.params as { userId: string };
+const getJobsPublic = asyncHandler(async (_req: Request, res: Response) => {
   const jobs = await Job.find({ $or: [{ status: JobStatus.Available }, { status: JobStatus.Pending }] });
-  const user = await Freelancer.findById(userId);
 
-  if (user) {
+  // todo add pagination
+  res.json({
+    jobs,
+  });
+});
+
+/**
+ * Get Job Detail
+ * @route GET /api/v1/jobs/detail/:jobId
+ * @access Public
+ */
+const getJobDetail = asyncHandler(async (_req: Request, res: Response) => {
+  const jobId = _req.params.jobId;
+  const job = await Job.findById(jobId);
+  const applications = await JobApplication.find({ jobId }).populate('workerId').populate('jobId');
+  if (job) {
     res.json({
-      jobs,
+      job,
+      applications,
     });
   } else {
     res.status(404);
-    throw new Error('User not found');
+    throw new Error('Job not found');
   }
 });
 
@@ -32,16 +63,17 @@ const getJobs = asyncHandler(async (req: Request, res: Response) => {
  * @access Priviledged, Public
  */
 const postJob = asyncHandler(async (req: Request, res: Response) => {
-  const { recruiterId, title, description, requirements, earnings } = req.body as {
+  const recruiterId = req.user?._id;
+  const { title, description, requirements, earnings } = req.body as {
     recruiterId: string;
     title: string;
     description: string;
-    requirements: string;
+    requirements: string[];
     earnings: number;
   };
 
   const employer = await Employer.findById(recruiterId);
-  let errorMessage = 'User not found';
+  let errorMessage = 'User not found or not an employer';
   if (employer) {
     errorMessage =
       'Your account does not yet have access to this feature. Complete your profile verification to proceed.';
@@ -52,7 +84,7 @@ const postJob = asyncHandler(async (req: Request, res: Response) => {
         title,
         description,
         earnings,
-        requirements: requirements.split(','),
+        requirements,
         owner: recruiterId,
       });
 
@@ -133,31 +165,34 @@ const completeJob = asyncHandler(async (req: Request, res: Response) => {
 
 /**
  * Apply for Job
- * @route PUT /api/v1/jobs/:jobId/apply
+ * @route PUT /api/v1/jobs/apply/:jobId
  * @access Private
  */
 const applyJob = asyncHandler(async (req: Request, res: Response) => {
+  const workerId = req.user?._id;
   const { jobId } = req.params as { jobId: string };
-  const { workerId, estimatedDeadline, payRate, coverLetter, workBid } = req.body as {
-    workerId: string;
-    estimatedDeadline: string;
-    payRate: string;
+  const { coverLetter } = req.body as {
     coverLetter: string;
-    workBid: string;
   };
-
-  const worker = await Freelancer.findById(workerId);
+  const job = await Job.findById(jobId);
+  const worker = await User.findById(workerId);
   let errorMessage = worker ? 'User is not verified for jobs' : 'User not found';
+  if (!job) errorMessage = 'Job not found.';
   let statusCode = worker ? 403 : 404;
 
-  if (worker && worker?.isVerified) {
+  const alreadyApplied = await JobApplication.findOne({
+    jobId: job?._id,
+    workerId: worker?._id,
+  });
+  if (job?.owner.toString() === workerId?.toString()) throw new Error('You can`t apply to your own job');
+  if (alreadyApplied) throw new Error('Already applied for this job');
+
+  // ? Note removed need for freelancer to be verifie to apply for job
+  if (worker) {
     const jobApplication = await JobApplication.create({
       workerId,
       jobId,
-      estimatedDeadline,
-      payRate,
       coverLetter,
-      workBid,
     });
 
     errorMessage = 'Failed to submit job proposal';
@@ -165,7 +200,13 @@ const applyJob = asyncHandler(async (req: Request, res: Response) => {
 
     if (jobApplication) {
       const job = await Job.findByIdAndUpdate(jobId, { status: 'Pending', $push: { pendingworkers: workerId } });
+      const jobApplicationNotification = {
+        title: `Your job has new application`,
+        message: `${worker?.firstName} has applied to your job.`,
+        userId: worker,
+      };
 
+      await Notification.create(jobApplicationNotification);
       if (job) {
         res.json({
           message: 'Your proposal has been sent and is pending for approval',
@@ -189,13 +230,13 @@ const applyJob = asyncHandler(async (req: Request, res: Response) => {
  */
 const addTeamMembers = asyncHandler(async (req: Request, res: Response) => {
   const { jobId } = req.params as { jobId: string };
-  const { ownerName, team } = req.body as { ownerName: string; team: string };
-  const teamMembers: string[] = team.split(',');
+  const { team } = req.body as { team: string[] };
   const job = await Job.findById(jobId);
+  const jobOwner = await User.findById(job?.owner);
   let errorMessage = 'Job not found';
 
   if (job) {
-    const workers = [...job.workers, ...teamMembers];
+    const workers = [...job.workers, ...team];
     const newMembersAdded = await Job.findByIdAndUpdate(jobId, { workers });
     errorMessage = 'Failed to add new members.';
 
@@ -205,7 +246,7 @@ const addTeamMembers = asyncHandler(async (req: Request, res: Response) => {
       const pendingNotifications = workers.map((worker) => {
         return {
           title: `Joined a job team`,
-          message: `${ownerName} has added you to work on their job as a team.`,
+          message: `${jobOwner?.firstName} has added you to work on their job as a team.`,
           userId: worker,
         };
       });
@@ -294,4 +335,112 @@ const downloadJobResultPackage = asyncHandler(async (req: Request, res: Response
   }
 });
 
-export { getJobs, postJob, deleteJob, completeJob, applyJob, addTeamMembers, jobReady, downloadJobResultPackage };
+// applications
+
+/**
+ * Get all job applications
+ * @route GET /api/v1/jobs/applications
+ * @access Private
+ */
+const getAllApplications = asyncHandler(async (req: Request, res: Response) => {
+  const { jobId } = req.body as { jobId: string };
+
+  const job = await Job.findById(jobId);
+  if (!job) throw new Error('Job not found.');
+
+  const applications = await JobApplication.find({
+    jobId,
+  }).populate('workerId');
+
+  res.send({
+    message: 'List of applicants',
+    applications,
+  });
+});
+
+/**
+ * Approve or reject job application
+ * @route PUT /api/v1/jobs/applications/:applicationId
+ * @access Private
+ */
+const applicationApprove = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?._id;
+  const { applicationId } = req.params as { applicationId: string };
+  const { action } = req.body as { action: JobApplicationStatus };
+  const jobApplication = await JobApplication.findById(applicationId).populate('workerId');
+  const job = await Job.findById(jobApplication?.jobId);
+  const worker = await User.findById(jobApplication?.workerId);
+
+  let errorMessage = 'Error';
+  if (!job) errorMessage = 'Job not found';
+  if (!jobApplication) throw new Error('Job application not found');
+  if (jobApplication.status !== JobApplicationStatus.Pending)
+    throw new Error(`Job application already ${jobApplication.status}`);
+
+  if (userId === (jobApplication.workerId as unknown as string)) {
+    throw new Error(`You can't ${action} your own job`);
+  }
+  if (jobApplication && job) {
+    if (action === JobApplicationStatus.Accepted) {
+      jobApplication.status = JobApplicationStatus.Accepted;
+      await jobApplication.save();
+      // send email to job owner
+      const link = `${frontendURL}/freelancer/jobs/${jobApplication.jobId}`;
+      await transport.sendMail({
+        to: worker?.email,
+        from: appEmail,
+        subject: 'Job application approved.',
+        html: acceptJobApplicationFormat(job?.title, link),
+      });
+
+      res.send({
+        message: 'Job application approved.',
+      });
+      return;
+    }
+    if (action === JobApplicationStatus.Rejected) {
+      jobApplication.status = JobApplicationStatus.Rejected;
+      // send email to job owner
+      const link = `${frontendURL}/jobs/${jobApplication.jobId}`;
+      await jobApplication.save();
+      await transport.sendMail({
+        to: worker?.email,
+        from: appEmail,
+        subject: 'Job application rejected.',
+        html: rejectJobApplicationFormat(job?.title, link),
+      });
+      res.send({
+        message: 'Job application rejected.',
+      });
+      return;
+    }
+    if (action === JobApplicationStatus.Cancelled) {
+      if (userId === (jobApplication.workerId as unknown as string)) {
+        jobApplication.status = JobApplicationStatus.Cancelled;
+        await jobApplication.save();
+        res.send({
+          message: 'You canceled your job application.',
+        });
+        return;
+      }
+    }
+  } else {
+    res.status(404);
+    throw new Error(errorMessage);
+  }
+});
+
+export {
+  getJobsSelf,
+  postJob,
+  deleteJob,
+  completeJob,
+  applyJob,
+  addTeamMembers,
+  jobReady,
+  downloadJobResultPackage,
+  getJobDetail,
+  getJobsPublic,
+  applicationApprove,
+  getAllApplications,
+};

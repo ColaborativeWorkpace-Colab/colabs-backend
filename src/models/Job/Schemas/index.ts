@@ -6,7 +6,7 @@ import {
   JobApplicationStatus,
   JobStatus,
 } from '../../../types';
-import mongoose, { Schema } from 'mongoose';
+import mongoose, { Schema, SchemaTypes } from 'mongoose';
 
 const JobSchema: Schema<IJobDocument, IJobModel> = new mongoose.Schema(
   {
@@ -36,7 +36,8 @@ const JobSchema: Schema<IJobDocument, IJobModel> = new mongoose.Schema(
       default: JobStatus.Pending,
     },
     owner: {
-      type: String,
+      type: SchemaTypes.ObjectId,
+      ref: 'User',
       required: true,
     },
     paymentVerified: {
@@ -55,26 +56,16 @@ const JobSchema: Schema<IJobDocument, IJobModel> = new mongoose.Schema(
 const JobApplicationSchema: Schema<IJobApplicationDocument, IJobApplicationModel> = new mongoose.Schema(
   {
     workerId: {
-      type: String,
+      type: SchemaTypes.ObjectId,
       required: true,
+      ref: 'User',
     },
     jobId: {
-      type: String,
+      type: SchemaTypes.ObjectId,
       required: true,
+      ref: 'Job',
     },
     coverLetter: {
-      type: String,
-      required: true,
-    },
-    estimatedDeadline: {
-      type: String,
-      required: true,
-    },
-    payRate: {
-      type: String,
-      required: true,
-    },
-    workBid: {
       type: String,
       required: true,
     },

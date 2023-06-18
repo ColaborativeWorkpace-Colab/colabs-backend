@@ -1,4 +1,4 @@
-import { Model, Document } from 'mongoose';
+import { Model, Document, Types } from 'mongoose';
 
 /**
  * Represents a Job
@@ -11,7 +11,7 @@ export interface IJob {
   pendingworkers: string[];
   requirements: string[];
   status: JobStatus;
-  owner: string;
+  owner: Types.ObjectId;
   paymentVerified: boolean;
   filesReady: string[];
 }

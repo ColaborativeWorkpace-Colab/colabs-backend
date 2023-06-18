@@ -1,15 +1,13 @@
-import { Model, Document } from 'mongoose';
+import { Model, Document, Types } from 'mongoose';
 
 /**
  * Represents a Job Application
  */
 export interface IJobApplication {
-  workerId: string;
-  jobId: string;
+  workerId: Types.ObjectId;
+  jobId: Types.ObjectId;
   coverLetter: string;
   estimatedDeadline: string;
-  payRate: string;
-  workBid: string;
   status: JobApplicationStatus;
 }
 

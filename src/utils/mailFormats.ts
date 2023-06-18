@@ -17,3 +17,20 @@ export function forgotPasswordFormat(link: string): string {
 }
 
 // todo add other email format to handle other email types
+export function acceptJobApplicationFormat(title: any, link: string): string {
+  return `
+          <p>Your jobApplication for ${title} has been approved!.</p>
+          <a href="${link}">
+               Take me to job
+          </a>
+     `;
+}
+
+export function rejectJobApplicationFormat(title: any, link: string): string {
+  return `
+             <p>The employer noted that you are not the right fit for the job:  ${title}</p>
+             <a href="${link}">
+               Take me to job
+          </a>
+        `;
+}
