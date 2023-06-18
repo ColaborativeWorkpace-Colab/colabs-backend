@@ -50,23 +50,19 @@ const postJob = (0, express_async_handler_1.default)(async (req, res) => {
     const employer = await models_1.Employer.findById(recruiterId);
     let errorMessage = 'User not found or not an employer';
     if (employer) {
-        errorMessage =
-            'Your account does not yet have access to this feature. Complete your profile verification to proceed.';
-        if (employer.isVerified) {
-            errorMessage = 'Job Posting Failed';
-            const job = await models_1.Job.create({
-                title,
-                description,
-                earnings,
-                requirements,
-                owner: recruiterId,
+        errorMessage = 'Job Posting Failed';
+        const job = await models_1.Job.create({
+            title,
+            description,
+            earnings,
+            requirements,
+            owner: recruiterId,
+        });
+        if (job) {
+            res.json({
+                message: `The ${title} job is successfully posted.`,
             });
-            if (job) {
-                res.json({
-                    message: `The ${title} job is successfully posted.`,
-                });
-                return;
-            }
+            return;
         }
     }
     res.status(404);
