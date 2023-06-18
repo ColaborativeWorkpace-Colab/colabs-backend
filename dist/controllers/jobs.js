@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAllApplications = exports.applicationApprove = exports.getJobsPublic = exports.getJobDetail = exports.downloadJobResultPackage = exports.jobReady = exports.addTeamMembers = exports.applyJob = exports.completeJob = exports.deleteJob = exports.postJob = exports.getJobsSelf = void 0;
+exports.getApplication = exports.getAllApplications = exports.applicationApprove = exports.getJobsPublic = exports.getJobDetail = exports.downloadJobResultPackage = exports.jobReady = exports.addTeamMembers = exports.applyJob = exports.completeJob = exports.deleteJob = exports.postJob = exports.getJobsSelf = void 0;
 const express_async_handler_1 = __importDefault(require("express-async-handler"));
 const models_1 = require("../models");
 const octokit_1 = require("octokit");
@@ -251,7 +251,7 @@ const downloadJobResultPackage = (0, express_async_handler_1.default)(async (req
 });
 exports.downloadJobResultPackage = downloadJobResultPackage;
 const getAllApplications = (0, express_async_handler_1.default)(async (req, res) => {
-    const { jobId } = req.body;
+    const { jobId } = req.params;
     const job = await models_1.Job.findById(jobId);
     if (!job)
         throw new Error('Job not found.');
@@ -330,4 +330,15 @@ const applicationApprove = (0, express_async_handler_1.default)(async (req, res)
     }
 });
 exports.applicationApprove = applicationApprove;
+const getApplication = (0, express_async_handler_1.default)(async (req, res) => {
+    const { applicationId } = req.params;
+    const application = await models_1.JobApplication.findById(applicationId).populate('workerId');
+    if (!application)
+        throw new Error('Job application not found');
+    res.send({
+        application,
+    });
+    return;
+});
+exports.getApplication = getApplication;
 //# sourceMappingURL=jobs.js.map

@@ -19,7 +19,10 @@ const jobValidation = {
             .isIn([types_1.JobApplicationStatus.Accepted, types_1.JobApplicationStatus.Rejected, types_1.JobApplicationStatus.Cancelled])
             .withMessage('Job Application actions is incorrect or missign'),
     ],
-    getAllApplication: [(0, express_validator_1.body)('jobId').not().isEmpty().isMongoId().withMessage('jobId is required')],
+    signleApplication: [
+        (0, express_validator_1.param)('applicationId').not().isEmpty().isMongoId().withMessage('ApplicationId param is required'),
+    ],
+    getAllApplication: [(0, express_validator_1.param)('jobId').not().isEmpty().isMongoId().withMessage('jobId is required')],
     team: [
         (0, express_validator_1.param)('jobId').not().isEmpty().isMongoId().withMessage('JobId param is required'),
         (0, express_validator_1.body)('team').not().isEmpty().isArray().withMessage('team is required to have atleast one element in the array'),

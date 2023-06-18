@@ -18,9 +18,12 @@ router.route('/ready/:jobId').put(jobs_1.jobReady);
 router.route('/complete/:jobId').put(jobs_1.completeJob);
 router.route('/delete/:jobId').delete(jobs_1.deleteJob);
 router.route('/download').get(jobs_1.downloadJobResultPackage);
-router.route('/applications').get(jobValidator_1.default.getAllApplication, errorMiddleware_1.parseValidationError, authMiddleware_1.protect, jobs_1.getAllApplications);
+router
+    .route('/applications/list/:jobId')
+    .get(jobValidator_1.default.getAllApplication, errorMiddleware_1.parseValidationError, authMiddleware_1.protect, jobs_1.getAllApplications);
 router
     .route('/applications/:applicationId')
+    .get(jobValidator_1.default.signleApplication, errorMiddleware_1.parseValidationError, authMiddleware_1.protect, jobs_1.getApplication)
     .put(jobValidator_1.default.applicationApprove, errorMiddleware_1.parseValidationError, authMiddleware_1.protect, jobs_1.applicationApprove);
 exports.default = router;
 //# sourceMappingURL=jobs.js.map
