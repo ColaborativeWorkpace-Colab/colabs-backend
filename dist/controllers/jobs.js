@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getApplication = exports.getAllApplications = exports.applicationApprove = exports.getJobsPublic = exports.getJobDetail = exports.downloadJobResultPackage = exports.jobReady = exports.addTeamMembers = exports.applyJob = exports.completeJob = exports.deleteJob = exports.postJob = exports.getJobsSelf = void 0;
+exports.getAllApplicationsSelf = exports.getApplication = exports.getAllApplications = exports.applicationApprove = exports.getJobsPublic = exports.getJobDetail = exports.downloadJobResultPackage = exports.jobReady = exports.addTeamMembers = exports.applyJob = exports.completeJob = exports.deleteJob = exports.postJob = exports.getJobsSelf = void 0;
 const express_async_handler_1 = __importDefault(require("express-async-handler"));
 const models_1 = require("../models");
 const octokit_1 = require("octokit");
@@ -11,6 +11,7 @@ const download_1 = require("../utils/download");
 const types_1 = require("../types");
 const config_1 = require("../config");
 const mailFormats_1 = require("../utils/mailFormats");
+const mongoose_1 = require("mongoose");
 const getJobsSelf = (0, express_async_handler_1.default)(async (req, res) => {
     var _a;
     const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
@@ -20,10 +21,80 @@ const getJobsSelf = (0, express_async_handler_1.default)(async (req, res) => {
     });
 });
 exports.getJobsSelf = getJobsSelf;
-const getJobsPublic = (0, express_async_handler_1.default)(async (_req, res) => {
-    const jobs = await models_1.Job.find({ $or: [{ status: types_1.JobStatus.Available }, { status: types_1.JobStatus.Pending }] });
+const getJobsPublic = (0, express_async_handler_1.default)(async (req, res) => {
+    const searchQuery = req.query;
+    const data = await models_1.Job.aggregate([
+        {
+            $facet: {
+                jobs: [
+                    {
+                        $match: {
+                            status: searchQuery.status || types_1.JobStatus.Pending,
+                            earnings: { $gte: Number(searchQuery.earnings) || 0 },
+                            paymentVerified: { $eq: !!searchQuery.paymentVerified },
+                        },
+                    },
+                    {
+                        $lookup: {
+                            from: 'users',
+                            localField: 'owner',
+                            foreignField: '_id',
+                            as: 'owner',
+                        },
+                    },
+                    {
+                        $unwind: {
+                            path: '$owner',
+                            preserveNullAndEmptyArrays: true,
+                        },
+                    },
+                    {
+                        $project: {
+                            title: 1,
+                            description: 1,
+                            earnings: 1,
+                            requirements: 1,
+                            paymentVerified: 1,
+                            createdAt: 1,
+                            owner: {
+                                _id: 1,
+                                firstName: 1,
+                                lastName: 1,
+                                email: 1,
+                                imageUrl: 1,
+                            },
+                        },
+                    },
+                    {
+                        $sort: {
+                            createdAt: searchQuery.order === 'asc' ? 1 : -1,
+                        },
+                    },
+                    {
+                        $skip: Number(searchQuery.start * searchQuery.limit) || 0,
+                    },
+                    {
+                        $limit: Number(searchQuery.limit) || 10,
+                    },
+                ],
+                total: [
+                    {
+                        $group: {
+                            _id: null,
+                            count: { $sum: 1 },
+                        },
+                    },
+                ],
+            },
+        },
+    ]);
+    const total = data[0].total[0].count;
+    const hasNextPage = total > Number(searchQuery.start * searchQuery.limit) + Number(searchQuery.limit);
     res.json({
-        jobs,
+        data: data[0].jobs,
+        filters: Object.assign({}, searchQuery),
+        hasNextPage,
+        total,
     });
 });
 exports.getJobsPublic = getJobsPublic;
@@ -247,19 +318,176 @@ const downloadJobResultPackage = (0, express_async_handler_1.default)(async (req
 });
 exports.downloadJobResultPackage = downloadJobResultPackage;
 const getAllApplications = (0, express_async_handler_1.default)(async (req, res) => {
+    var _a;
     const { jobId } = req.params;
+    const { start, limit } = req.query;
     const job = await models_1.Job.findById(jobId);
     if (!job)
         throw new Error('Job not found.');
-    const applications = await models_1.JobApplication.find({
-        jobId,
-    }).populate('workerId');
+    const applications = await models_1.JobApplication.aggregate([
+        {
+            $facet: {
+                applications: [
+                    {
+                        $match: {
+                            jobId: new mongoose_1.Types.ObjectId(jobId),
+                        },
+                    },
+                    {
+                        $lookup: {
+                            from: 'jobs',
+                            localField: 'jobId',
+                            foreignField: '_id',
+                            as: 'job',
+                        },
+                    },
+                    {
+                        $unwind: {
+                            path: '$job',
+                            preserveNullAndEmptyArrays: true,
+                        },
+                    },
+                    {
+                        $lookup: {
+                            from: 'users',
+                            localField: 'workerId',
+                            foreignField: '_id',
+                            as: 'worker',
+                        },
+                    },
+                    {
+                        $unwind: {
+                            path: '$worker',
+                            preserveNullAndEmptyArrays: true,
+                        },
+                    },
+                    {
+                        $project: {
+                            _id: 1,
+                            coverLetter: 1,
+                            status: 1,
+                            job: {
+                                title: 1,
+                                description: 1,
+                                earnings: 1,
+                                requirements: 1,
+                                paymentVerified: 1,
+                                createdAt: 1,
+                            },
+                            worker: {
+                                _id: 1,
+                                firstName: 1,
+                                lastName: 1,
+                                email: 1,
+                                imageUrl: 1,
+                            },
+                        },
+                    },
+                    {
+                        $skip: Number(start * limit) || 0,
+                    },
+                    {
+                        $limit: Number(limit) || 10,
+                    },
+                    {
+                        $sort: {
+                            createdAt: -1,
+                        },
+                    },
+                ],
+                total: [
+                    {
+                        $match: {
+                            jobId: new mongoose_1.Types.ObjectId(jobId),
+                        },
+                    },
+                    {
+                        $group: {
+                            _id: null,
+                            count: {
+                                $sum: 1,
+                            },
+                        },
+                    },
+                ],
+            },
+        },
+    ]);
+    const data = applications[0].applications;
+    const total = ((_a = applications[0].total[0]) === null || _a === void 0 ? void 0 : _a.count) || 0;
+    const hasNextPage = total > Number(start * limit) + Number(limit);
     res.send({
-        message: 'List of applicants',
-        applications,
+        data,
+        total,
+        hasNextPage,
     });
 });
 exports.getAllApplications = getAllApplications;
+const getAllApplicationsSelf = (0, express_async_handler_1.default)(async (req, res) => {
+    var _a;
+    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+    const applications = await models_1.JobApplication.aggregate([
+        {
+            $match: {
+                workerId: new mongoose_1.Types.ObjectId(userId),
+            },
+        },
+        {
+            $lookup: {
+                from: 'jobs',
+                localField: 'jobId',
+                foreignField: '_id',
+                as: 'job',
+            },
+        },
+        {
+            $unwind: {
+                path: '$job',
+                preserveNullAndEmptyArrays: true,
+            },
+        },
+        {
+            $lookup: {
+                from: 'users',
+                localField: 'job.owner',
+                foreignField: '_id',
+                as: 'owner',
+            },
+        },
+        {
+            $unwind: {
+                path: '$owner',
+                preserveNullAndEmptyArrays: true,
+            },
+        },
+        {
+            $project: {
+                _id: 1,
+                coverLetter: 1,
+                status: 1,
+                job: {
+                    title: 1,
+                    description: 1,
+                    earnings: 1,
+                    requirements: 1,
+                    paymentVerified: 1,
+                    createdAt: 1,
+                },
+                owner: {
+                    _id: 1,
+                    firstName: 1,
+                    lastName: 1,
+                    email: 1,
+                    imageUrl: 1,
+                },
+            },
+        },
+    ]);
+    res.send({
+        applications,
+    });
+});
+exports.getAllApplicationsSelf = getAllApplicationsSelf;
 const applicationApprove = (0, express_async_handler_1.default)(async (req, res) => {
     var _a;
     const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;

@@ -21,6 +21,7 @@ router.route('/download').get(jobs_1.downloadJobResultPackage);
 router
     .route('/applications/list/:jobId')
     .get(jobValidator_1.default.getAllApplication, errorMiddleware_1.parseValidationError, authMiddleware_1.protect, jobs_1.getAllApplications);
+router.route('/applications/self').get(authMiddleware_1.protect, jobs_1.getAllApplicationsSelf);
 router
     .route('/applications/:applicationId')
     .get(jobValidator_1.default.signleApplication, errorMiddleware_1.parseValidationError, authMiddleware_1.protect, jobs_1.getApplication)
