@@ -67,13 +67,12 @@ const registerUser = (0, express_async_handler_1.default)(async (req, res) => {
 });
 exports.registerUser = registerUser;
 const getUserProfile = (0, express_async_handler_1.default)(async (req, res) => {
-    var _a, _b;
-    const type = (_a = req.user) === null || _a === void 0 ? void 0 : _a.type;
-    const TargetUser = (0, finder_1.findTypeofUser)(type);
-    const user = await TargetUser.findById((_b = req.user) === null || _b === void 0 ? void 0 : _b._id);
+    var _a;
+    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+    const user = await models_1.User.findById(userId).select('-password');
     if (user) {
         res.json({
-            Data: user.cleanUser(),
+            user,
         });
     }
     else {
