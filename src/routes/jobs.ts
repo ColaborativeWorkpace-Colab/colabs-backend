@@ -13,6 +13,7 @@ import {
   applicationApprove,
   getAllApplications,
   getApplication,
+  getAllApplicationsSelf,
 } from '../controllers/jobs';
 import jobValidation from '../validators/jobValidator';
 import { parseValidationError } from '../middleware/errorMiddleware';
@@ -36,6 +37,7 @@ router.route('/download').get(downloadJobResultPackage);
 router
   .route('/applications/list/:jobId')
   .get(jobValidation.getAllApplication, parseValidationError, protect, getAllApplications);
+router.route('/applications/self').get(protect, getAllApplicationsSelf);
 router
   .route('/applications/:applicationId')
   .get(jobValidation.signleApplication, parseValidationError, protect, getApplication)

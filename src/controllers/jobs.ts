@@ -6,6 +6,7 @@ import { getFilesfromRepo } from '../utils/download';
 import { JobApplicationStatus, JobStatus } from '../types';
 import { appEmail, frontendURL, transport } from '../config';
 import { acceptJobApplicationFormat, rejectJobApplicationFormat } from '../utils/mailFormats';
+import { Types } from 'mongoose';
 
 // NOTE: When manipulating a job info, only the owner has accessPending, Completed, Active, Ready, Available
 /**
@@ -28,12 +29,95 @@ const getJobsSelf = asyncHandler(async (req: Request, res: Response) => {
  * @route GET /api/v1/jobs
  * @access Public
  */
-const getJobsPublic = asyncHandler(async (_req: Request, res: Response) => {
-  const jobs = await Job.find({ $or: [{ status: JobStatus.Available }, { status: JobStatus.Pending }] });
+const getJobsPublic = asyncHandler(async (req: Request, res: Response) => {
+  const searchQuery = req.query as unknown as {
+    status: JobStatus;
+    earnings: number;
+    start: number;
+    limit: number;
+    order: 'asc' | 'desc';
+    paymentVerified: boolean;
+  };
 
-  // todo add pagination
+  const data = await Job.aggregate([
+    {
+      $facet: {
+        jobs: [
+          {
+            $match: {
+              status: searchQuery.status || JobStatus.Pending,
+              earnings: { $gte: Number(searchQuery.earnings) || 0 },
+              paymentVerified: { $eq: !!searchQuery.paymentVerified },
+            },
+          },
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'owner',
+              foreignField: '_id',
+              as: 'owner',
+            },
+          },
+          {
+            $unwind: {
+              path: '$owner',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+
+          {
+            $project: {
+              title: 1,
+              description: 1,
+              earnings: 1,
+              requirements: 1,
+              paymentVerified: 1,
+              createdAt: 1,
+              owner: {
+                _id: 1,
+                firstName: 1,
+                lastName: 1,
+                email: 1,
+                imageUrl: 1,
+              },
+            },
+          },
+
+          {
+            $sort: {
+              createdAt: searchQuery.order === 'asc' ? 1 : -1,
+            },
+          },
+          {
+            $skip: Number(searchQuery.start * searchQuery.limit) || 0,
+          },
+          {
+            $limit: Number(searchQuery.limit) || 10,
+          },
+        ],
+
+        total: [
+          {
+            $group: {
+              _id: null,
+              count: { $sum: 1 },
+            },
+          },
+        ],
+      },
+    },
+  ]);
+
+  const total = data[0].total[0].count;
+  const hasNextPage = total > Number(searchQuery.start * searchQuery.limit) + Number(searchQuery.limit);
+
   res.json({
-    jobs,
+    data: data[0].jobs,
+    filters: {
+      ...searchQuery,
+    },
+    hasNextPage,
+    total,
   });
 });
 
@@ -344,16 +428,180 @@ const downloadJobResultPackage = asyncHandler(async (req: Request, res: Response
  */
 const getAllApplications = asyncHandler(async (req: Request, res: Response) => {
   const { jobId } = req.params as { jobId: string };
+  const { start, limit } = req.query as unknown as { start: number; limit: number };
 
   const job = await Job.findById(jobId);
   if (!job) throw new Error('Job not found.');
 
-  const applications = await JobApplication.find({
-    jobId,
-  }).populate('workerId');
+  const applications = await JobApplication.aggregate([
+    {
+      $facet: {
+        applications: [
+          {
+            $match: {
+              jobId: new Types.ObjectId(jobId),
+            },
+          },
+          {
+            $lookup: {
+              from: 'jobs',
+              localField: 'jobId',
+              foreignField: '_id',
+              as: 'job',
+            },
+          },
+          {
+            $unwind: {
+              path: '$job',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'workerId',
+              foreignField: '_id',
+              as: 'worker',
+            },
+          },
+          {
+            $unwind: {
+              path: '$worker',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+          {
+            $project: {
+              _id: 1,
+              coverLetter: 1,
+              status: 1,
+              job: {
+                title: 1,
+                description: 1,
+                earnings: 1,
+                requirements: 1,
+                paymentVerified: 1,
+                createdAt: 1,
+              },
+              worker: {
+                _id: 1,
+                firstName: 1,
+                lastName: 1,
+                email: 1,
+                imageUrl: 1,
+              },
+            },
+          },
+          {
+            $skip: Number(start * limit) || 0,
+          },
+          {
+            $limit: Number(limit) || 10,
+          },
+
+          {
+            $sort: {
+              createdAt: -1,
+            },
+          },
+        ],
+        total: [
+          {
+            $match: {
+              jobId: new Types.ObjectId(jobId),
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              count: {
+                $sum: 1,
+              },
+            },
+          },
+        ],
+      },
+    },
+  ]);
+
+  const data = applications[0].applications;
+  const total = applications[0].total[0]?.count || 0;
+  const hasNextPage = total > Number(start * limit) + Number(limit);
 
   res.send({
-    message: 'List of applicants',
+    data,
+    total,
+    hasNextPage,
+  });
+});
+
+/**
+ * Get all job applications self
+ * @route GET /api/v1/jobs/applications
+ * @access Private
+ */
+const getAllApplicationsSelf = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?._id;
+
+  const applications = await JobApplication.aggregate([
+    {
+      $match: {
+        workerId: new Types.ObjectId(userId),
+      },
+    },
+    {
+      $lookup: {
+        from: 'jobs',
+        localField: 'jobId',
+        foreignField: '_id',
+        as: 'job',
+      },
+    },
+    {
+      $unwind: {
+        path: '$job',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'job.owner',
+        foreignField: '_id',
+        as: 'owner',
+      },
+    },
+    {
+      $unwind: {
+        path: '$owner',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $project: {
+        _id: 1,
+        coverLetter: 1,
+        status: 1,
+        job: {
+          title: 1,
+          description: 1,
+          earnings: 1,
+          requirements: 1,
+          paymentVerified: 1,
+          createdAt: 1,
+        },
+        owner: {
+          _id: 1,
+          firstName: 1,
+          lastName: 1,
+          email: 1,
+          imageUrl: 1,
+        },
+      },
+    },
+  ]);
+
+  res.send({
     applications,
   });
 });
@@ -460,4 +708,5 @@ export {
   applicationApprove,
   getAllApplications,
   getApplication,
+  getAllApplicationsSelf,
 };
