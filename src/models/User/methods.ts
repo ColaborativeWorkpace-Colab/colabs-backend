@@ -23,7 +23,7 @@ const modelMethods = {
   async cleanUser(this: IUserDocument) {
     const user = this.toObject();
     user.id = user._id;
-    delete user._id;
+
     delete user.password;
     delete user.__v;
     delete user.createdAt;

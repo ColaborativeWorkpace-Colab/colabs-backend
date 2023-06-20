@@ -79,13 +79,12 @@ const registerUser = asyncHandler(async (req: Request, res: Response) => {
  * @access Private
  */
 const getUserProfile = asyncHandler(async (req: Request, res: Response) => {
-  const type = req.user?.type as UserDiscriminators;
-  const TargetUser = findTypeofUser(type);
-  const user = await TargetUser.findById(req.user?._id);
+  const userId = req.user?._id;
+  const user = await User.findById(userId).select('-password');
 
   if (user) {
     res.json({
-      Data: user.cleanUser(),
+      user,
     });
   } else {
     res.status(404);
