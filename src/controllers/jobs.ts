@@ -72,6 +72,7 @@ const getJobsPublic = asyncHandler(async (req: Request, res: Response) => {
               earnings: 1,
               requirements: 1,
               paymentVerified: 1,
+              pendingworkers: 1,
               createdAt: 1,
               owner: {
                 _id: 1,
