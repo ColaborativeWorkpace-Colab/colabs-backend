@@ -82,6 +82,12 @@ app.use('/uploads', express.static(path.join(path.resolve(), 'uploads')));
 app.use(notFound);
 app.use(errorHandler);
 
+if (httpServer.listening) {
+  // if the server is listening, close it
+  console.log('Server is listening');
+  httpServer.close();
+}
+
 httpServer.listen(PORT, () => {
   console.log(`Server running in ${nodeEnv} mode on port ${PORT}`);
 });
