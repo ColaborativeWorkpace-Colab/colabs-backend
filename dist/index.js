@@ -88,6 +88,10 @@ app.use('/api/v1/chapa', chapa_1.default);
 app.use('/uploads', express_1.default.static(path_1.default.join(path_1.default.resolve(), 'uploads')));
 app.use(errorMiddleware_1.notFound);
 app.use(errorMiddleware_1.errorHandler);
+if (httpServer.listening) {
+    console.log('Server is listening');
+    httpServer.close();
+}
 httpServer.listen(PORT, () => {
     console.log(`Server running in ${config_1.nodeEnv} mode on port ${PORT}`);
 });
