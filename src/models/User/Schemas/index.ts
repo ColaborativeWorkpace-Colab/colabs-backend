@@ -20,7 +20,6 @@ const UserSchema: Schema<IUserDocument, IUserModel> = new Schema(
     },
     lastName: {
       type: String,
-      required: true,
     },
     email: {
       type: String,
