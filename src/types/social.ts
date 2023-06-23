@@ -1,4 +1,4 @@
-import { Model, Document } from 'mongoose';
+import { Model, Document, Types } from 'mongoose';
 
 /**
  * Represents a Post
@@ -10,7 +10,7 @@ export interface IPost {
   tags: string[];
   comments: [{ userId: string; comment: string }];
   donatable: boolean;
-  userId: string;
+  userId: Types.ObjectId;
 }
 
 export interface ICleanPost extends IPost {

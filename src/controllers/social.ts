@@ -1,48 +1,95 @@
 import { Request, Response } from '../types/express';
 import asyncHandler from 'express-async-handler';
 import { User, Post } from '../models';
-import { Tag } from '../types';
+// import { Tag } from '../types';
 
 /**
  * Get Posts
- * @route GET /api/v1/social/:userId
+ * @route GET /api/v1/social
  * @access Public
  */
 const getPosts = asyncHandler(async (req: Request, res: Response) => {
-  const { userId } = req.params as { userId: string };
-  const user = await User.findById(userId);
-  let tagIterator = 0;
+  const searchQuery = req.query as unknown as {
+    start: number;
+    limit: number;
+    order: 'asc' | 'desc';
+  };
 
-  if (user) {
-    const userPreferences = user.tags.sort((a: Tag, b: Tag) => {
-      if (a.score > b.score) return -1;
-      return 0;
-    });
-    // TODO: Test fetching content Limit
-    new Promise(async (resolve, _reject) => {
-      const posts: any = [];
+  const data = await Post.aggregate([
+    {
+      $facet: {
+        posts: [
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'userId',
+              foreignField: '_id',
+              as: 'user',
+            },
+          },
+          {
+            $unwind: {
+              path: '$user',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+          {
+            $project: {
+              _id: 1,
+              textContent: 1,
+              imageContent: 1,
+              likes: 1,
+              tags: 1,
+              comments: 1,
+              donatable: 1,
+              createdAt: 1,
+              updatedAt: 1,
+              user: {
+                _id: 1,
+                firstName: 1,
+                lastName: 1,
+                email: 1,
+                imageUrl: 1,
+              },
+            },
+          },
 
-      if (userPreferences.length > 0)
-        userPreferences.forEach(async (tag) => {
-          const post = await Post.find({ tags: tag.name }).sort({ createdAt: -1 }).limit(10);
+          {
+            $sort: {
+              createdAt: searchQuery.order === 'asc' ? 1 : -1,
+            },
+          },
+          {
+            $skip: Number(searchQuery.start * searchQuery.limit) || 0,
+          },
+          {
+            $limit: Number(searchQuery.limit) || 10,
+          },
+        ],
 
-          posts.push(post);
-          tagIterator++;
+        total: [
+          {
+            $group: {
+              _id: null,
+              count: { $sum: 1 },
+            },
+          },
+        ],
+      },
+    },
+  ]);
 
-          if (userPreferences.length === tagIterator) resolve(posts);
-        });
-      else resolve(await Post.find({}).sort({ createdAt: -1 }).limit(10));
-    }).then((posts: any) => {
-      posts.length === 0
-        ? res.status(204)
-        : res.json({
-            posts,
-          });
-    });
-  } else {
-    res.status(404);
-    throw new Error('User not found');
-  }
+  const total = data[0].total[0]?.count || 0;
+  const hasNextPage = total > Number(searchQuery.start * searchQuery.limit) + Number(searchQuery.limit);
+
+  res.json({
+    data: data[0].posts,
+    filters: {
+      ...searchQuery,
+    },
+    hasNextPage,
+    total,
+  });
 });
 
 /**
@@ -51,27 +98,24 @@ const getPosts = asyncHandler(async (req: Request, res: Response) => {
  * @access Public
  */
 const postContent = asyncHandler(async (req: Request, res: Response) => {
-  const { userId } = req.params as { userId: string };
+  const userId = req.user?._id;
   const { textContent, imageContent, tags } = req.body as { textContent?: string; imageContent?: string; tags: string };
-  const user = await User.findById(userId);
 
   let errorMessage = 'User not found';
   let statusCode = 404;
 
-  if (user) {
-    errorMessage = 'Failed posting content';
-    statusCode = 500;
+  errorMessage = 'Failed posting content';
+  statusCode = 500;
 
-    const post = await Post.create({ textContent, imageContent, tags: tags.split(','), userId });
+  const post = await Post.create({ textContent, imageContent, tags: tags.split(','), userId });
 
-    if (post) {
-      res.json({
-        message: 'Content Posted',
-        post,
-      });
+  if (post) {
+    res.json({
+      message: 'Content Posted',
+      post,
+    });
 
-      return;
-    }
+    return;
   }
 
   res.status(statusCode);

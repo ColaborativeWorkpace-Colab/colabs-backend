@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose';
+import mongoose, { Schema, SchemaTypes } from 'mongoose';
 import { IPostDocument, IPostModel } from 'src/types';
 import { modelMethods, staticMethods } from './methods';
 
@@ -24,8 +24,8 @@ const postSchema: Schema<IPostDocument, IPostModel> = new mongoose.Schema(
       default: false,
     },
     userId: {
-      type: String,
-      required: true,
+      type: SchemaTypes.ObjectId,
+      ref: 'User',
     },
   },
   {
