@@ -94,12 +94,16 @@ const getPosts = asyncHandler(async (req: Request, res: Response) => {
 
 /**
  * Post Content
- * @route POST /api/v1/social/:userId
+ * @route POST /api/v1/social
  * @access Public
  */
 const postContent = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?._id;
-  const { textContent, imageContent, tags } = req.body as { textContent?: string; imageContent?: string; tags: string };
+  const { textContent, imageContent, tags } = req.body as {
+    textContent?: string;
+    imageContent?: string;
+    tags: string;
+  };
 
   let errorMessage = 'User not found';
   let statusCode = 404;
@@ -107,7 +111,15 @@ const postContent = asyncHandler(async (req: Request, res: Response) => {
   errorMessage = 'Failed posting content';
   statusCode = 500;
 
-  const post = await Post.create({ textContent, imageContent, tags: tags.split(','), userId });
+  const post = await Post.create({
+    textContent,
+    imageContent,
+    tags: tags
+      .trim()
+      .split(',')
+      .map((el) => el.trim()),
+    userId,
+  });
 
   if (post) {
     res.json({
