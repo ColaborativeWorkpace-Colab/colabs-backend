@@ -523,6 +523,12 @@ const dashboardClient = asyncHandler(async (req: Request, res: Response) => {
       },
     },
     {
+      $unwind: {
+        path: '$job',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
       $lookup: {
         from: 'users',
         localField: 'workerId',
@@ -531,9 +537,21 @@ const dashboardClient = asyncHandler(async (req: Request, res: Response) => {
       },
     },
     {
+      $unwind: {
+        path: '$worker',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
       $project: {
-        worker: '$worker',
-        earning: '$worker.earnings',
+        worker: {
+          _id: '$worker._id',
+          firstName: '$worker.firstName',
+          lastName: '$worker.lastName',
+          email: '$worker.email',
+          imageUrl: '$worker.imageUrl',
+        },
+        earnings: '$job.earnings',
       },
     },
   ]);
