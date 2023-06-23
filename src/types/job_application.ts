@@ -9,6 +9,7 @@ export interface IJobApplication {
   coverLetter: string;
   estimatedDeadline: string;
   status: JobApplicationStatus;
+  employerId: Types.ObjectId;
 }
 
 export interface ICleanJobApplication extends IJobApplication {

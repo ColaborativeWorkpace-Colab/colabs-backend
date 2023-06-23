@@ -277,6 +277,7 @@ const applyJob = asyncHandler(async (req: Request, res: Response) => {
     const jobApplication = await JobApplication.create({
       workerId,
       jobId,
+      employerId: job?.owner,
       coverLetter,
     });
 

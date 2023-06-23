@@ -60,6 +60,11 @@ const JobApplicationSchema: Schema<IJobApplicationDocument, IJobApplicationModel
       required: true,
       ref: 'User',
     },
+    employerId: {
+      type: SchemaTypes.ObjectId,
+      required: true,
+      ref: 'User',
+    },
     jobId: {
       type: SchemaTypes.ObjectId,
       required: true,

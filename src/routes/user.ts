@@ -26,6 +26,7 @@ import {
   getRequestByIdOthers,
   getAllRequestOthers,
   authWithGoogleMobileRedirect,
+  dashboardClient,
 } from '../controllers/user';
 import { admin, protect } from '../middleware/authMiddleware';
 import requestValidations from '../validators/requestValidations';
@@ -50,6 +51,7 @@ router
 router.route('/request').post(requestValidations.submitRequest, parseValidationError, protect, submitRequest);
 router.route('/request/self').get(protect, getAllRequestSelf);
 router.route('/request/self/:id').get(protect, getRequestByIdSelf).delete(protect, deleteRequestByIdSelf);
+router.route('/dashboard').get(protect, dashboardClient);
 
 // Connection Routes
 router.route('/');

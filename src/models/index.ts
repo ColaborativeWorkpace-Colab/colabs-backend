@@ -8,6 +8,7 @@ import Post from './Post';
 import Chat from './Chat';
 import Request from './Request';
 import Payment from './Payment';
+import Project from './Project';
 
 export {
   User,
@@ -23,4 +24,5 @@ export {
   Chat,
   Request,
   Payment,
+  Project,
 };

@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from '../types/express';
 import asyncHandler from 'express-async-handler';
-import { Employer, Freelancer, User, Request as RequestModel } from '../models/';
+import { Employer, Freelancer, User, Request as RequestModel, Job, Project, JobApplication } from '../models/';
 import generateToken from '../utils/generateToken';
 import passport from 'passport';
 import { appEmail, backendURL, frontendURL, jwtSecret, transport } from '../config';
@@ -8,10 +8,11 @@ import { forgotPasswordFormat, verifyEmailFormat } from '../utils/mailFormats';
 import Token from '../models/Token';
 import jwt, { Secret } from 'jsonwebtoken';
 import httpStatus from 'http-status';
-import { Decoded, LegalInfo, TokenTypes } from '../types';
+import { Decoded, JobApplicationStatus, LegalInfo, TokenTypes } from '../types';
 import { UserDiscriminators, findTypeofUser } from '../utils/finder';
 import { RequestStatus, RequestType } from '../types/request';
 import { chapa } from './chapa';
+
 /**
  * Authenticate user and get token
  * @route POST /api/users/login
@@ -492,6 +493,61 @@ const updateRequest = asyncHandler(async (req: Request, res: Response) => {
   }
 });
 
+// dashboard
+
+/**
+ * Dahsbord for client
+ * @route Get /api/users/dashboard
+ * @access Private / Client
+ */
+const dashboardClient = asyncHandler(async (req: Request, res: Response) => {
+  const user = req.user;
+  if (user?.type !== 'Employer') {
+    throw new Error('Please login as a client');
+  }
+
+  const jobs = await Job.find({ owner: user?._id });
+  const hiredWorkers = await JobApplication.aggregate([
+    {
+      $match: {
+        employerId: user._id,
+        status: JobApplicationStatus.Accepted,
+      },
+    },
+    {
+      $lookup: {
+        from: 'jobs',
+        localField: 'jobId',
+        foreignField: '_id',
+        as: 'job',
+      },
+    },
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'workerId',
+        foreignField: '_id',
+        as: 'worker',
+      },
+    },
+    {
+      $project: {
+        worker: '$worker',
+        earning: '$worker.earnings',
+      },
+    },
+  ]);
+
+  const projects = await Project.find({ owner: user?._id }).populate('members.workerId');
+
+  res.send({
+    message: 'Dashboard for client',
+    jobs,
+    hiredWorkers,
+    projects,
+  });
+});
+
 export {
   authUser,
   getUserProfile,
@@ -517,4 +573,5 @@ export {
   getAllRequestSelf,
   getRequestByIdSelf,
   deleteRequestByIdSelf,
+  dashboardClient,
 };
