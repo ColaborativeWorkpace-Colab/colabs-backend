@@ -1,4 +1,4 @@
-import { Model, Document } from 'mongoose';
+import { Model, Document, Types } from 'mongoose';
 
 export enum PaymentStatus {
   PENDING = 'pending',
@@ -7,13 +7,13 @@ export enum PaymentStatus {
 
 // Payment
 export interface Payment {
-  freelancerId: string;
-  employerId: string;
-  jobId: string;
+  freelancerId: Types.ObjectId;
+  employerId: Types.ObjectId;
   amount: number;
   status: PaymentStatus;
   txRef: string;
   currency: string;
+  projectId: Types.ObjectId;
 }
 
 // Documents

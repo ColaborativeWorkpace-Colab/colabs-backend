@@ -2,7 +2,8 @@ import { body } from 'express-validator';
 
 const chapaValidator = {
   init: [
-    body('jobId').trim().isMongoId().withMessage('jobId should be valid mongodb Id'),
+    body('projectId').trim().isMongoId().withMessage('projectId should be valid mongodb Id'),
+    body('earnings').trim().isNumeric().withMessage('earnings should be a number'),
     body('freelancerId').trim().isMongoId().withMessage('freelancerId should be valid mongodb Id'),
   ],
 

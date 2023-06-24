@@ -1,8 +1,8 @@
 import Chapa from 'chapa-node';
 import { backendURL, chapaKey, frontendURL, chapaWebHookHash } from '../config/envVars';
 import asyncHandler from 'express-async-handler';
-import { BankAccountInfo, JobStatus, PaymentStatus, Request, Response } from '../types';
-import { Job, User, Payment } from '../models';
+import { BankAccountInfo, PaymentStatus, Request, Response } from '../types';
+import { User, Payment, Project } from '../models';
 import crypto from 'crypto';
 
 export const chapa = new Chapa(chapaKey);
@@ -13,19 +13,20 @@ export const chapa = new Chapa(chapaKey);
  * @access Private
  */
 const initializePayment = asyncHandler(async (req: Request, res: Response) => {
-  const { jobId, freelancerId } = req.body;
-  const job = await Job.findById(jobId);
-  const jobOwner = await User.findById(job?.owner);
+  const user = req.user;
+  const { freelancerId, projectId, earnings } = req.body;
+
+  const project = await Project.findById(projectId).populate('owner');
+  const employer = await User.findById(user?._id);
   const freelancer = await User.findById(freelancerId);
 
-  if (job?.owner !== req.user?._id) {
+  if (user?._id?.toString() !== project?.owner.toString()) {
     res.status(401);
     throw new Error('Unauthorized');
   }
 
-  if (job && jobOwner) {
-    const { firstName, lastName, email } = jobOwner;
-    const { earnings } = job;
+  if (project && employer && freelancer) {
+    const { firstName, lastName, email } = employer;
     const txRef = chapa.generateTxRef();
 
     const response = await chapa.initialize({
@@ -35,21 +36,21 @@ const initializePayment = asyncHandler(async (req: Request, res: Response) => {
       amount: earnings,
       tx_ref: txRef,
       currency: 'ETB',
-      return_url: `${frontendURL}/thankyou`,
+      return_url: `${frontendURL}/client/workspace/projects/${projectId}`,
       callback_url: `${backendURL}/api/v1/chapa/update/${txRef}`,
       subaccounts: [
         {
           id: freelancer?.subAccountId as string,
           split_type: 'percentage',
-          transaction_charge: 0.5, // todo update me later
+          transaction_charge: 0.3, // todo update me later
         },
       ],
     });
 
     await Payment.create({
       freelancerId,
-      employerId: jobOwner._id,
-      jobId: job._id,
+      employerId: employer._id,
+      projectId,
       amount: earnings,
       status: PaymentStatus.PENDING,
       txRef,
@@ -59,56 +60,56 @@ const initializePayment = asyncHandler(async (req: Request, res: Response) => {
     res.send(response);
   }
 
-  if (!job) {
+  if (!project) {
     res.status(404);
-    throw new Error('Job not found');
+    throw new Error('Project not found');
   }
 
-  if (!jobOwner) {
+  if (!employer) {
     res.status(404);
-    throw new Error('Job owner not found');
+    throw new Error('Project owner not found');
   }
 });
 
 /**
  * Update the initialized payment item- when user get paid
- * @route POST /api/v1/chapa/update
+ * @route POST /api/v1/chapa/update/:tnxRef
  * @access Private
  */
 const update = asyncHandler(async (req: Request, res: Response) => {
   const { tnxRef } = req.params;
   const payment = await Payment.findOne({ txRef: tnxRef });
-  const job = await Job.findById(payment?.jobId);
+  const project = await Project.findById(payment?.projectId);
   if (!payment) {
     res.status(404);
 
-    throw new Error('Payment not found');
+    throw new Error('Payment Information not found with this transaction reference');
   }
-  if (!job) {
+  if (!project) {
     res.status(404);
-    throw new Error('Job not found');
+    throw new Error('Project not found');
   }
 
   const freelancer = await User.findById(payment?.freelancerId);
-  const jobOwner = await User.findById(payment?.employerId);
-
   if (!freelancer) {
     res.status(404);
     throw new Error('Freelancer not found');
   }
 
-  if (!jobOwner) {
-    res.status(404);
-    throw new Error('Job owner not found');
-  }
+  project.members.map((member) => {
+    if (member.workerId.toString() === freelancer._id.toString()) {
+      member.isPaid = true;
+    }
+  });
 
-  freelancer.earnings += payment?.amount as number;
-  job.status = JobStatus.Completed;
+  freelancer.earnings += payment?.amount;
   payment.status = PaymentStatus.PAID;
   await freelancer.save();
-  await job.save();
+  await project.save();
+  await payment.save();
 
   res.sendStatus(200);
+  return;
 });
 
 /**
@@ -123,37 +124,36 @@ const webHook = asyncHandler(async (req: Request, res: Response) => {
 
   if (colabsHash === chapaHash && status === 'success') {
     const payment = await Payment.findOne({ txRef: tx_ref });
-    const job = await Job.findById(payment?.jobId);
+    const project = await Project.findById(payment?.projectId);
     if (!payment) {
       res.status(404);
 
-      throw new Error('Payment not found');
+      throw new Error('Payment Information not found with this transaction reference');
     }
-    if (!job) {
+    if (!project) {
       res.status(404);
-      throw new Error('Job not found');
+      throw new Error('Project not found');
     }
 
     const freelancer = await User.findById(payment?.freelancerId);
-    const jobOwner = await User.findById(payment?.employerId);
-
     if (!freelancer) {
       res.status(404);
       throw new Error('Freelancer not found');
     }
 
-    if (!jobOwner) {
-      res.status(404);
-      throw new Error('Job owner not found');
-    }
-
-    freelancer.earnings += payment?.amount as number;
-    job.status = JobStatus.Completed;
+    project.members.map((member) => {
+      if (member.workerId.toString() === freelancer._id.toString()) {
+        member.isPaid = true;
+      }
+    });
+    freelancer.earnings += payment?.amount;
     payment.status = PaymentStatus.PAID;
     await freelancer.save();
-    await job.save();
+    await project.save();
+    await payment.save();
 
     res.sendStatus(200);
+    return;
   }
 
   res.status(500);

@@ -1,20 +1,16 @@
-import { Schema, model } from 'mongoose';
+import { Schema, SchemaTypes, model } from 'mongoose';
 import { PaymentDocument, PaymentModel, PaymentStatus } from '../../types';
 import { modelMethods, staticMethods } from './methods';
 
 const PaymentSchema: Schema<PaymentDocument, PaymentModel> = new Schema(
   {
     freelancerId: {
-      type: String,
-      required: true,
+      type: SchemaTypes.ObjectId,
+      ref: 'User',
     },
     employerId: {
-      type: String,
-      required: true,
-    },
-    jobId: {
-      type: String,
-      required: true,
+      type: SchemaTypes.ObjectId,
+      ref: 'User',
     },
     amount: {
       type: Number,
@@ -33,6 +29,11 @@ const PaymentSchema: Schema<PaymentDocument, PaymentModel> = new Schema(
     currency: {
       type: String,
       default: 'ETB',
+    },
+    projectId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Project',
+      required: true,
     },
   },
   { timestamps: true },
