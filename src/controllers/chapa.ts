@@ -4,6 +4,9 @@ import asyncHandler from 'express-async-handler';
 import { BankAccountInfo, PaymentStatus, Request, Response } from '../types';
 import { User, Payment, Project } from '../models';
 import crypto from 'crypto';
+import { transport } from '../config';
+import { appEmail } from '../config/envVars';
+import { paymentRecived } from '../utils/mailFormats';
 
 export const chapa = new Chapa(chapaKey);
 
@@ -107,6 +110,14 @@ const update = asyncHandler(async (req: Request, res: Response) => {
   await freelancer.save();
   await project.save();
   await payment.save();
+
+  const link = `${frontendURL}/freelancer/workspace/projects/${payment.projectId}`;
+  await transport.sendMail({
+    to: freelancer.email,
+    from: appEmail,
+    subject: 'Payment Recived.',
+    html: paymentRecived(freelancer.firstName, link),
+  });
 
   res.sendStatus(200);
   return;

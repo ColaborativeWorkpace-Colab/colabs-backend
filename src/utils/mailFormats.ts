@@ -260,3 +260,13 @@ export function rejectJobApplicationFormat(title: any, link: string): string {
 </html>
         `;
 }
+
+export function paymentRecived(name: string, link: string) {
+  return `<div>
+    <h1>Payment Recived</h1>
+    <p>Dear ${name}, you just got paid!</p>
+    <p>Click the link below to view your payment details:</p>
+    <a href="${link}">View Payment</a>
+  </div>
+  `;
+}
