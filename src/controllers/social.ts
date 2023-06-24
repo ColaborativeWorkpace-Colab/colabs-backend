@@ -356,6 +356,23 @@ const getPostData = asyncHandler(async (req: Request, res: Response) => {
   res.status(statusCode);
   throw new Error(errorMessage);
 });
+/**
+ * Get detail post
+ * @route PUT /api/v1/social/explore/:postTag
+ * @access Public
+ */
+const getDetail = asyncHandler(async (req: Request, res: Response) => {
+  const { postId } = req.params as {
+    postId: string;
+  };
+  const post = await Post.findById(postId);
+  if (!post) throw new Error('Post not found');
+
+  res.send({
+    message: 'Post detail',
+    data: post,
+  });
+});
 
 // TODO: donate to creator
 export {
@@ -368,4 +385,5 @@ export {
   addUserSocialConnections,
   removeUserSocialConnections,
   getPostData,
+  getDetail,
 };

@@ -9,6 +9,7 @@ import {
   addUserSocialConnections,
   removeUserSocialConnections,
   getPostData,
+  getDetail,
 } from '../controllers/social';
 import socialValidator from '../validators/socialValidator';
 import { parseValidationError } from '../middleware/errorMiddleware';
@@ -17,6 +18,7 @@ import { protect } from '../middleware/authMiddleware';
 const router = express.Router();
 
 router.route('/').get(getPosts).post(socialValidator.create, parseValidationError, protect, postContent);
+router.route('/:postId').get(getDetail);
 
 // Post routes
 router.route('/:userId/:postId/like').put(likePost);
