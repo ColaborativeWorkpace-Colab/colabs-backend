@@ -83,10 +83,16 @@ const updateProject = asyncHandler(async (req: Request, res: Response) => {
       });
       return;
     }
-    const projectValidName = title.replace(/\s/g, '-');
-    project.title = projectValidName;
-    project.members = [...members];
-    project.status = status;
+    if (title) {
+      const projectValidName = title.replace(/\s/g, '-');
+      project.title = projectValidName;
+    }
+    if (members) {
+      project.members = [...members];
+    }
+    if (status) {
+      project.status = status;
+    }
     await project.save();
 
     res.status(OK).send({

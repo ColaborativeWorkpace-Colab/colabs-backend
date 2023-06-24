@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from '../types/express';
 import asyncHandler from 'express-async-handler';
-import { Employer, Freelancer, User, Request as RequestModel, Job, Project, JobApplication } from '../models/';
+import { Employer, Freelancer, User, Request as RequestModel, Job, Project, JobApplication, Payment } from '../models/';
 import generateToken from '../utils/generateToken';
 import passport from 'passport';
 import { appEmail, backendURL, frontendURL, jwtSecret, transport } from '../config';
@@ -8,7 +8,7 @@ import { forgotPasswordFormat, verifyEmailFormat } from '../utils/mailFormats';
 import Token from '../models/Token';
 import jwt, { Secret } from 'jsonwebtoken';
 import httpStatus from 'http-status';
-import { Decoded, JobApplicationStatus, LegalInfo, TokenTypes } from '../types';
+import { Decoded, JobApplicationStatus, LegalInfo, PaymentStatus, TokenTypes } from '../types';
 import { UserDiscriminators, findTypeofUser } from '../utils/finder';
 import { RequestStatus, RequestType } from '../types/request';
 import { chapa } from './chapa';
@@ -557,12 +557,28 @@ const dashboardClient = asyncHandler(async (req: Request, res: Response) => {
   ]);
 
   const projects = await Project.find({ owner: user?._id }).populate('members.workerId');
-
+  const totalSpent = await Payment.aggregate([
+    {
+      $match: {
+        employerId: user._id,
+        status: PaymentStatus.PAID,
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        total: {
+          $sum: '$amount',
+        },
+      },
+    },
+  ]);
   res.send({
     message: 'Dashboard for client',
     jobs,
     hiredWorkers,
     projects,
+    totalSpent: totalSpent[0]?.total || 0,
   });
 });
 
