@@ -1,4 +1,4 @@
-import { Model, Document } from 'mongoose';
+import { Model, Document, Types } from 'mongoose';
 import { Profile } from 'passport-google-oauth20';
 import { Profile as GithubProfile } from 'passport-github2';
 import { Permission } from './permission';
@@ -28,7 +28,7 @@ export interface IUser {
   googleId: string;
   emailVerified: boolean;
   imageUrl: string;
-  connections: string[];
+  connections: Types.ObjectId[];
   lastSeen: Date;
   isOnline: boolean;
   legalInfo: LegalInfo;

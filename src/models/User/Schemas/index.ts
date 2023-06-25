@@ -48,9 +48,12 @@ const UserSchema: Schema<IUserDocument, IUserModel> = new Schema(
       type: Boolean,
       default: false,
     },
-    connections: {
-      type: [String],
-    },
+    connections: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
     isOnline: {
       type: Boolean,
       default: false,

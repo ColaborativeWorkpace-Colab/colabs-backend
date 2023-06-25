@@ -1,7 +1,7 @@
 import { Request, Response } from '../types/express';
 import asyncHandler from 'express-async-handler';
 import { User, Post } from '../models';
-// import { Tag } from '../types';
+import { Types } from 'mongoose';
 
 /**
  * Get Posts
@@ -31,6 +31,14 @@ const getPosts = asyncHandler(async (req: Request, res: Response) => {
             $unwind: {
               path: '$user',
               preserveNullAndEmptyArrays: true,
+            },
+          },
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'likes',
+              foreignField: '_id',
+              as: 'likes',
             },
           },
           {
@@ -136,32 +144,30 @@ const postContent = asyncHandler(async (req: Request, res: Response) => {
 
 /**
  * Like Post
- * @route PUt /api/v1/social/:userId/:postId/like
+ * @route PUt /api/v1/social/like/:postId
  * @access Public
  */
 const likePost = asyncHandler(async (req: Request, res: Response) => {
-  const { postId, userId } = req.params as { postId: string; userId: string };
+  const userId = req.user?._id as unknown as Types.ObjectId;
+  const { postId } = req.params as { postId: string };
   const post = await Post.findById(postId);
 
   let errorMessage = 'Post not found';
   let statusCode = 404;
 
   if (post) {
-    let updatedLikes = post.likes;
     errorMessage = 'Failed to like post';
     statusCode = 500;
 
+    if (!post.likes.includes(userId)) {
+      post.likes = [...post.likes, userId];
+      await post.save();
+    } else {
+      res.json({ message: 'Post already liked' });
+      return;
+    }
+
     if (post.likes.includes(userId)) {
-      updatedLikes = [];
-
-      post.likes.forEach((likedUserId) => {
-        if (likedUserId !== userId) updatedLikes.push(likedUserId);
-      });
-    } else updatedLikes.push(userId);
-
-    const postLiked = await post.updateOne({ likes: updatedLikes });
-
-    if (postLiked) {
       res.json({ message: 'Post Liked' });
       return;
     }
@@ -177,7 +183,8 @@ const likePost = asyncHandler(async (req: Request, res: Response) => {
  * @access Public
  */
 const commentPost = asyncHandler(async (req: Request, res: Response) => {
-  const { postId, userId } = req.params as { postId: string; userId: string };
+  const userId = req.user?._id;
+  const { postId } = req.params as { postId: string };
   const { comment } = req.body as { comment: string };
   const post = await Post.findById(postId);
 
@@ -269,25 +276,31 @@ const getUserSocialConnections = asyncHandler(async (req: Request, res: Response
  * @access Private
  */
 const addUserSocialConnections = asyncHandler(async (req: Request, res: Response) => {
-  const { userId } = req.params as { userId: string };
+  const userId = req.user?._id;
   const { otherUserId } = req.body as { otherUserId: string };
   const user = await User.findById(userId);
+  const otherUser = await User.findById(otherUserId);
 
   let errorMessage = 'User not found';
   let statusCode = 404;
 
-  if (user) {
+  if (user && otherUser) {
     errorMessage = "Failed to add connection to the user's database entry";
     statusCode = 500;
-    const connectionAdded = await user.updateOne({ connections: [...user.connections, otherUserId] });
-
-    if (connectionAdded) {
+    if (user.connections.includes(otherUser._id)) {
       res.json({
-        message: 'User added to your connections list',
+        message: 'User already in your connections list',
       });
-
       return;
     }
+
+    user.connections = [...user.connections, otherUser._id];
+    await user.save();
+    res.json({
+      message: 'User added to your connections list',
+      user,
+    });
+    return;
   }
 
   res.status(statusCode);
@@ -300,20 +313,20 @@ const addUserSocialConnections = asyncHandler(async (req: Request, res: Response
  * @access Private
  */
 const removeUserSocialConnections = asyncHandler(async (req: Request, res: Response) => {
-  const { userId } = req.params as { userId: string };
+  const userId = req.user?._id;
   const { otherUserId } = req.body as { otherUserId: string };
   const user = await User.findById(userId);
+  const otherUser = await User.findById(otherUserId);
 
   let errorMessage = 'User not found';
   let statusCode = 404;
 
-  if (user) {
+  if (user && otherUser) {
     errorMessage = "Failed to remove connection from the user's database entry";
     statusCode = 500;
-    const updatedConnections = user.connections.filter((userConnectionId) => userConnectionId !== otherUserId);
-    const connectionRemoved = await user.updateOne({ connections: updatedConnections });
-
-    if (connectionRemoved) {
+    if (!user.connections.includes(otherUser._id)) {
+      user.connections = user.connections.filter((connection) => connection !== otherUser._id);
+      await user.save();
       res.json({
         message: 'User removed from your connections list',
       });
@@ -356,6 +369,7 @@ const getPostData = asyncHandler(async (req: Request, res: Response) => {
   res.status(statusCode);
   throw new Error(errorMessage);
 });
+
 /**
  * Get detail post
  * @route PUT /api/v1/social/explore/:postTag
@@ -365,7 +379,7 @@ const getDetail = asyncHandler(async (req: Request, res: Response) => {
   const { postId } = req.params as {
     postId: string;
   };
-  const post = await Post.findById(postId);
+  const post = await Post.findById(postId).populate('userId').populate('likes').populate('comments.userId');
   if (!post) throw new Error('Post not found');
 
   res.send({

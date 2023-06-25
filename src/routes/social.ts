@@ -21,14 +21,14 @@ router.route('/').get(getPosts).post(socialValidator.create, parseValidationErro
 router.route('/:postId').get(getDetail);
 
 // Post routes
-router.route('/:userId/:postId/like').put(likePost);
-router.route('/:userId/:postId/comment').put(commentPost);
-router.route('/:userId/:postId/edit').put(editPost);
+router.route('/like/:postId').put(protect, likePost);
+router.route('/comment/:postId').put(protect, commentPost);
+router.route('/edit/:postId').put(editPost);
 
 // Connection routes
-router.route('/connections/:userId').get(getUserSocialConnections);
-router.route('/connections/:userId/addConnection').put(addUserSocialConnections);
-router.route('/connections/:userId/removeConnection').put(removeUserSocialConnections);
+router.route('/connections').get(protect, getUserSocialConnections);
+router.route('/connections/addConnection').put(protect, addUserSocialConnections);
+router.route('/connections/removeConnection').put(protect, removeUserSocialConnections);
 
 // Explore Routes
 router.route('/explore/:postTag').get(getPostData);
