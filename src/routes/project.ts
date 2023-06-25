@@ -19,7 +19,7 @@ router
   .post(projectValidator.addProject, parseValidationError, protect, addProject);
 
 router.route('/freelancer').get(protect, getProjectsFreelancer);
-router.route('/request-payment/:id').get(protect, requestPayment);
+router.route('/request-payment/:id').put(protect, requestPayment);
 router.route('/:id').get(protect, projectDetail).put(protect, updateProject);
 
 export default router;

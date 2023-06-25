@@ -192,7 +192,7 @@ const requestPayment = asyncHandler(async (req: Request, res: Response) => {
 
   await project.save();
   res.status(OK).send({
-    message: 'Payment successfully.',
+    message: 'Payment requested successfully.',
   });
   return;
 });
@@ -219,19 +219,34 @@ const getProjectsFreelancer = asyncHandler(async (req: Request, res: Response) =
       },
     },
     {
-      $unwind: '$members',
-    },
-    {
-      $match: {
-        'members.workerId': user._id,
+      $lookup: {
+        from: 'users',
+        localField: 'members.workerId',
+        foreignField: '_id',
+        as: 'teams',
       },
     },
+    {
+      $addFields: {
+        self: {
+          $filter: {
+            input: '$members',
+            as: 'member',
+            cond: {
+              $eq: ['$$member.workerId', user._id],
+            },
+          },
+        },
+      },
+    },
+
     {
       $project: {
         _id: 1,
         title: 1,
         status: 1,
-        members: 1,
+        teams: 1,
+        self: { $first: '$self' },
         createdAt: 1,
         updatedAt: 1,
       },
