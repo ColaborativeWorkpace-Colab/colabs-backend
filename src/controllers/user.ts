@@ -12,6 +12,7 @@ import { Decoded, JobApplicationStatus, LegalInfo, PaymentStatus, TokenTypes } f
 import { UserDiscriminators, findTypeofUser } from '../utils/finder';
 import { RequestStatus, RequestType } from '../types/request';
 import { chapa } from './chapa';
+import { ProjectStatus } from '../types/project';
 
 /**
  * Authenticate user and get token
@@ -582,6 +583,104 @@ const dashboardClient = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 
+/**
+ * Dahsbord for freelancer
+ * @route Get /api/users/dashboard
+ * @access Private / Freelancer
+ */
+const dashboardFreelancer = asyncHandler(async (req: Request, res: Response) => {
+  const user = req.user;
+  if (user?.type !== 'Freelancer') {
+    throw new Error('Please login as a freelancer');
+  }
+
+  const totalApplied = await JobApplication.count({
+    workerId: user?._id,
+  });
+
+  const totalHired = await JobApplication.count({
+    workerId: user?._id,
+    status: JobApplicationStatus.Accepted,
+  });
+
+  // find active and completed freelancer projects
+  const projects = await Project.aggregate([
+    {
+      $match: {
+        'members.workerId': user._id,
+      },
+    },
+    {
+      $facet: {
+        active: [
+          {
+            $match: {
+              status: ProjectStatus.ONGOING,
+            },
+          },
+          {
+            $project: {
+              _id: '$_id',
+              title: '$title',
+              description: '$description',
+              status: '$status',
+              startDate: '$startDate',
+              endDate: '$endDate',
+              owner: '$owner',
+              members: '$members',
+            },
+          },
+        ],
+        completed: [
+          {
+            $match: {
+              status: ProjectStatus.COMPLETED,
+            },
+          },
+          {
+            $project: {
+              _id: '$_id',
+              title: '$title',
+              description: '$description',
+              status: '$status',
+              startDate: '$startDate',
+              endDate: '$endDate',
+              owner: '$owner',
+              members: '$members',
+            },
+          },
+        ],
+      },
+    },
+  ]);
+  const totalGained = await Payment.aggregate([
+    {
+      $match: {
+        freelancerId: user._id,
+        status: PaymentStatus.PAID,
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        total: {
+          $sum: '$amount',
+        },
+      },
+    },
+  ]);
+
+  res.send({
+    message: 'Dashboard for freelancer',
+    totalApplied,
+    totalHired,
+    activeProjects: projects[0].active,
+    completedProjects: projects[0].completed,
+    totalGained: totalGained[0]?.total || 0,
+  });
+  return;
+});
+
 export {
   authUser,
   getUserProfile,
@@ -608,4 +707,5 @@ export {
   getRequestByIdSelf,
   deleteRequestByIdSelf,
   dashboardClient,
+  dashboardFreelancer,
 };

@@ -27,6 +27,7 @@ import {
   getAllRequestOthers,
   authWithGoogleMobileRedirect,
   dashboardClient,
+  dashboardFreelancer,
 } from '../controllers/user';
 import { admin, protect } from '../middleware/authMiddleware';
 import requestValidations from '../validators/requestValidations';
@@ -52,6 +53,7 @@ router.route('/request').post(requestValidations.submitRequest, parseValidationE
 router.route('/request/self').get(protect, getAllRequestSelf);
 router.route('/request/self/:id').get(protect, getRequestByIdSelf).delete(protect, deleteRequestByIdSelf);
 router.route('/dashboard').get(protect, dashboardClient);
+router.route('/dashboard/freelancer').get(protect, dashboardFreelancer);
 
 // Connection Routes
 router.route('/');

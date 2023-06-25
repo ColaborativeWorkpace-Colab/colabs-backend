@@ -196,4 +196,53 @@ const requestPayment = asyncHandler(async (req: Request, res: Response) => {
   });
   return;
 });
-export { addProject, updateProject, getProjects, projectDetail, requestPayment };
+
+/**
+ * get project freelancer
+ * @route POST /api/project/freelancer
+ * @access Private Employer
+ */
+const getProjectsFreelancer = asyncHandler(async (req: Request, res: Response) => {
+  const user = req.user;
+
+  if (user?.type !== 'Freelancer') {
+    res.status(FORBIDDEN).send({
+      message: 'You need freelancer account to create project',
+    });
+    return;
+  }
+
+  const projects = await Project.aggregate([
+    {
+      $match: {
+        'members.workerId': user._id,
+      },
+    },
+    {
+      $unwind: '$members',
+    },
+    {
+      $match: {
+        'members.workerId': user._id,
+      },
+    },
+    {
+      $project: {
+        _id: 1,
+        title: 1,
+        status: 1,
+        members: 1,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    },
+  ]);
+
+  res.status(OK).send({
+    message: 'Freelancer projects fetched successfully.',
+    data: projects,
+  });
+  return;
+});
+
+export { addProject, updateProject, getProjects, projectDetail, getProjectsFreelancer, requestPayment };
