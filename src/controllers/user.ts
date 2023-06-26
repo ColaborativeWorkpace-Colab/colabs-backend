@@ -11,8 +11,11 @@ import httpStatus from 'http-status';
 import { Decoded, JobApplicationStatus, LegalInfo, PaymentStatus, TokenTypes } from '../types';
 import { UserDiscriminators, findTypeofUser } from '../utils/finder';
 import { RequestStatus, RequestType } from '../types/request';
-import { chapa } from './chapa';
 import { ProjectStatus } from '../types/project';
+import Chapa from 'chapa-node';
+import { chapaKey } from '../config/envVars';
+
+const chapa = new Chapa(chapaKey);
 
 /**
  * Authenticate user and get token
@@ -361,7 +364,6 @@ const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
  */
 const submitRequest = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?._id;
-  console.log(userId, req.user?._id);
   const { legalInfo, type } = req.body as { legalInfo: LegalInfo; type: RequestType };
 
   const newRequest = await RequestModel.create({
@@ -371,11 +373,13 @@ const submitRequest = asyncHandler(async (req: Request, res: Response) => {
     type,
   });
 
-  if (!newRequest) throw new Error('Failed to submit the reques.');
-
-  res.status(httpStatus.CREATED).send({
-    message: 'Request created successfully',
-  });
+  if (newRequest) {
+    res.status(httpStatus.CREATED).send({
+      message: 'Request created successfully',
+    });
+    return;
+  }
+  throw new Error('Failed to submit the reques.');
 });
 
 /**
@@ -446,7 +450,7 @@ const deleteRequestByIdSelf = asyncHandler(async (req: Request, res: Response) =
 const updateRequest = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   const { action } = req.query as { action: RequestStatus.APPROVED | RequestStatus.REJECTED };
-  const request = await RequestModel.findById(id);
+  const request = await RequestModel.findById(id).populate('user');
   if (!request) res.status(httpStatus.NOT_FOUND).send({ message: 'Request not found' });
   else {
     if (request?.status !== RequestStatus.INREVIEW) {
@@ -461,11 +465,13 @@ const updateRequest = asyncHandler(async (req: Request, res: Response) => {
 
     if (action === RequestStatus.APPROVED) {
       user.isVerified = true;
-      user.legalInfo = {
-        ...user.legalInfo,
-        ...request.legalInfo,
-      };
-      if (user.baseModelName === 'Freelancer') {
+      if (request.legalInfo) {
+        user.legalInfo = {
+          ...user.legalInfo,
+          ...request.legalInfo,
+        };
+      }
+      if (user.baseModelName === 'Freelancer' && user.subAccountId === undefined && user.legalInfo.bank) {
         const subAccountId = await chapa.createSubAccount({
           split_type: 'percentage',
           split_value: 0.5, // todo update me later
@@ -487,6 +493,8 @@ const updateRequest = asyncHandler(async (req: Request, res: Response) => {
     }
 
     if (action === RequestStatus.REJECTED) {
+      request.status = action;
+      await request.save();
       res.send({
         message: 'Request reject.',
       });
