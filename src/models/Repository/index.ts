@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose';
+import mongoose, { Schema, SchemaTypes } from 'mongoose';
 import { IRepositoryDocument, IRepositoryModel } from 'src/types';
 import { modelMethods, staticMethods } from './methods';
 
@@ -15,7 +15,8 @@ const repositorySchema: Schema<IRepositoryDocument, IRepositoryModel> = new mong
       type: [Object],
     },
     members: {
-      type: [String],
+      type: [SchemaTypes.ObjectId],
+      ref: 'User',
     },
     owner: {
       type: String,

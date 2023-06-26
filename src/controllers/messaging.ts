@@ -186,7 +186,7 @@ const getLastSeen = asyncHandler(async (req: Request, res: Response) => {
   const users = userIds.split(',');
 
   await new Promise((resolve, _reject) => {
-    const lastSeenStatuses: { userId: string; isOnline?: boolean; lastSeen?: Date }[] = [];
+    const lastSeenStatuses: { userId: string; isOnline?: boolean; lastSeen?: Date; imageUrl?: string }[] = [];
 
     users.forEach(async (userId, index) => {
       if (userId.length !== 0) {
@@ -196,6 +196,7 @@ const getLastSeen = asyncHandler(async (req: Request, res: Response) => {
           userName: `${user?.firstName} ${user?.lastName}`,
           isOnline: user?.isOnline,
           lastSeen: user?.lastSeen,
+          imageUrl: user?.imageUrl,
         };
 
         lastSeenStatuses.push(userJson);

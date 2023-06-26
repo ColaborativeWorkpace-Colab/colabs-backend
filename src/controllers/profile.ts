@@ -2,6 +2,7 @@ import { Request, Response } from '../types/express';
 import asyncHandler from 'express-async-handler';
 import { User, SVT, SVTSolution, Notification, Freelancer } from '../models';
 import { IUser } from 'src/types';
+import { Types } from 'mongoose';
 
 /**
  * Get Profile
@@ -265,6 +266,46 @@ const scoreSolution = asyncHandler(async (req: Request, res: Response) => {
   throw new Error(errorMessage);
 });
 
+const getProfiles = asyncHandler(async (req: Request, res: Response) => {
+  const { userId } = req.params as { userId: string };
+  // const svts = await SVT.find(svtFilter === 'all' ? {} : { skill: svtFilter });
+
+  const users = await User.aggregate([
+    {
+      $match: { _id: new Types.ObjectId(userId) },
+    },
+    // {
+    //   $unwind: '$connections',
+    // },
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'connections',
+        foreignField: '_id',
+        as: 'connections',
+      },
+    },
+    {
+      $project: {
+        _id: 1,
+        firstName: 1,
+        lastName: 1,
+        email: 1,
+        imageUrl: 1,
+      },
+    },
+  ]);
+
+  if (users) {
+    res.json({
+      users,
+    });
+  } else {
+    res.status(404);
+    throw new Error('SVTs not found');
+  }
+});
+
 // TODO: Award badges for achievements
 export {
   getProfile,
@@ -274,5 +315,6 @@ export {
   addSVT,
   getPendingSolutions,
   scoreSolution,
+  getProfiles,
   getMultipleProfileData,
 };

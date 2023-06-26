@@ -1,4 +1,4 @@
-import { Model, Document } from 'mongoose';
+import { Model, Document, Types } from 'mongoose';
 
 /**
  * Represents a repository
@@ -7,7 +7,7 @@ export interface IRepository {
   name: string;
   tasks: Task[];
   files: object[];
-  members: string[];
+  members: Types.ObjectId[];
   owner: string;
 }
 

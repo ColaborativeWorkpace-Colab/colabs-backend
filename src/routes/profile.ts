@@ -7,6 +7,7 @@ import {
   addSVT,
   getPendingSolutions,
   scoreSolution,
+  getProfiles,
   getMultipleProfileData,
 } from '../controllers/profile';
 
@@ -21,4 +22,5 @@ router.route('/data').post(getMultipleProfileData);
 router.route('/skills/:regulatorId/solutions').get(getPendingSolutions);
 router.route('/skills/:regulatorId/solutions/:solutionId/score').put(scoreSolution);
 
+router.route('/connections/:userId').get(getProfiles);
 export default router;

@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import asyncHandler from 'express-async-handler';
 import { uploadCloudinary, imageUploadMulter } from '../utils';
+
 const router = express.Router();
 
 const uploadController = asyncHandler(async (req: Request, res: Response) => {
