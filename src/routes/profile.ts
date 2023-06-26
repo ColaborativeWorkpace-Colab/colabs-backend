@@ -7,6 +7,7 @@ import {
   addSVT,
   getPendingSolutions,
   scoreSolution,
+  getMultipleProfileData,
 } from '../controllers/profile';
 
 const router = express.Router();
@@ -16,6 +17,7 @@ router.route('/skills/:skill').get(getSVTs);
 router.route('/skills/:skillId/submit').post(submitSolution);
 
 router.route('/skills/:regulatorId/addSVT').post(addSVT);
+router.route('/data').post(getMultipleProfileData);
 router.route('/skills/:regulatorId/solutions').get(getPendingSolutions);
 router.route('/skills/:regulatorId/solutions/:solutionId/score').put(scoreSolution);
 

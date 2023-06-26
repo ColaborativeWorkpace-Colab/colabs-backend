@@ -1,6 +1,7 @@
 import { Request, Response } from '../types/express';
 import asyncHandler from 'express-async-handler';
 import { User, SVT, SVTSolution, Notification, Freelancer } from '../models';
+import { IUser } from 'src/types';
 
 /**
  * Get Profile
@@ -19,6 +20,31 @@ const getProfile = asyncHandler(async (req: Request, res: Response) => {
     res.status(404);
     throw new Error('User not found');
   }
+});
+
+/**
+ * Get Multiple Profile Data
+ * @route POST /api/v1/profile/data
+ * @access Private
+ */
+const getMultipleProfileData = asyncHandler(async (req: Request, res: Response) => {
+  const { userIds } = req.body as { userIds: string[] };
+  const users: IUser[] = [];
+
+  await new Promise((resolve, _reject) => {
+    userIds.forEach(async (userId) => {
+      const user = await User.findById(userId);
+
+      if (user) users.push(user);
+      if (users.length === userIds.length) resolve(users);
+    });
+  })
+    .then((users) => {
+      res.json(users);
+    })
+    .catch((error) => {
+      res.json(error);
+    });
 });
 
 /**
@@ -240,4 +266,13 @@ const scoreSolution = asyncHandler(async (req: Request, res: Response) => {
 });
 
 // TODO: Award badges for achievements
-export { getProfile, editProfile, getSVTs, submitSolution, addSVT, getPendingSolutions, scoreSolution };
+export {
+  getProfile,
+  editProfile,
+  getSVTs,
+  submitSolution,
+  addSVT,
+  getPendingSolutions,
+  scoreSolution,
+  getMultipleProfileData,
+};
