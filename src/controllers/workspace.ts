@@ -33,17 +33,20 @@ const getProjects = asyncHandler(async (req: Request, res: Response) => {
 const getProjectFiles = asyncHandler(async (req: Request, res: Response) => {
   const { projectId } = req.params as { projectId: string };
   const repository = await Repository.findById(projectId);
+
   const client = new Octokit({
     auth: process.env.GITHUB_PERSONAL_ACCESS_TOKEN,
   });
 
   if (repository) {
+    const contents = await client.request(`GET /repos/${process.env.GITHUB_ORGANIZATION}/${repository.name}/contents`);
     const commits = await client.request(`GET /repos/${process.env.GITHUB_ORGANIZATION}/${repository.name}/commits`);
     const trees = await client.request(
       `GET /repos/${process.env.GITHUB_ORGANIZATION}/${repository.name}/git/trees/main`,
     );
 
     res.json({
+      contents,
       commits,
       trees,
     });

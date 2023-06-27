@@ -26,6 +26,7 @@ const authUser = asyncHandler(async (req: Request, res: Response) => {
   res.send({
     message: 'Signin Successfully.',
     data: user,
+    token: generateToken(user._id),
   });
 });
 
@@ -36,7 +37,7 @@ const authUser = asyncHandler(async (req: Request, res: Response) => {
  */
 const registerUser = asyncHandler(async (req: Request, res: Response) => {
   const { firstName, lastName, email, password } = req.body;
-  const { type } = req.query as { type: UserDiscriminators };
+  const { type, isMobile } = req.query as { type: UserDiscriminators; isMobile: string };
   const TargetUser = findTypeofUser(type);
   const userExists = await User.findOne({ email });
 
@@ -52,23 +53,27 @@ const registerUser = asyncHandler(async (req: Request, res: Response) => {
   });
 
   if (user) {
-    const emailToken = await Token.create({
-      token: generateToken(`${user._id}-${user.email}`, '1d'),
-      expires: '1d',
-      user: user._id,
-      type: TokenTypes.EMAIL_VERIFY,
-    });
-    const link = `${backendURL}/api/v1/users/signup/verify-email/?type=${type}&token=${emailToken.token}`;
-    await transport.sendMail({
-      from: appEmail as string,
-      to: user.email,
-      html: verifyEmailFormat(link),
-      subject: 'Verify your email',
-    });
-    await user.save();
-    res.send({
-      message: 'We have sent you verification email. Please verify your email',
-    });
+    if (isMobile === 'true') {
+      res.json({ user, token: generateToken(user._id) });
+    } else {
+      const emailToken = await Token.create({
+        token: generateToken(`${user._id}-${user.email}`, '1d'),
+        expires: '1d',
+        user: user._id,
+        type: TokenTypes.EMAIL_VERIFY,
+      });
+      const link = `${backendURL}/api/v1/users/signup/verify-email/?type=${type}&token=${emailToken.token}`;
+      await transport.sendMail({
+        from: appEmail as string,
+        to: user.email,
+        html: verifyEmailFormat(link),
+        subject: 'Verify your email',
+      });
+      await user.save();
+      res.send({
+        message: 'We have sent you verification email. Please verify your email',
+      });
+    }
   } else {
     res.status(400);
     throw new Error('Invalid user data');

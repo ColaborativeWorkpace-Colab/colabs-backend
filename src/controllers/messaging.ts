@@ -36,42 +36,34 @@ const messagingSocket = (socket: Socket<any>) => {
       timeStamp: string;
       chatId?: string;
     }) => {
-      if (connectedUsers[data.receiverId])
-        chatIo.sockets.to(connectedUsers[data.receiverId]).emit('incoming_private_message', data.message);
+      const newMessage = {
+        messageId: data.messageId,
+        sender: data.senderId,
+        message: data.message,
+        timestamp: Date.parse(data.timeStamp),
+      };
 
       if (data.chatId) {
         const chat = await Chat.findById(data.chatId);
 
         if (chat) {
           const messageStored = await chat.updateOne({
-            totalMessages: [
-              ...chat.totalMessages,
-              {
-                messageId: data.messageId,
-                sender: data.senderId,
-                message: data.message,
-                timestamp: Date.parse(data.timeStamp),
-              },
-            ],
+            totalMessages: [...chat.totalMessages, newMessage],
             // TODO: Only if user is not online
             inbox: [...chat.inbox, data.messageId],
           });
 
           if (!messageStored)
             chatIo.sockets.to(connectedUsers[data.senderId]).emit('message_store_error', 'Failed to store message');
+
+          if (connectedUsers[data.receiverId])
+            chatIo.sockets.to(connectedUsers[data.receiverId]).emit('incoming_private_message', newMessage);
         }
       } else {
         const chatCreated = await Chat.create({
           type: ChatType.Private,
           members: [data.senderId, data.receiverId],
-          totalMessages: [
-            {
-              messageId: data.messageId,
-              sender: data.senderId,
-              message: data.message,
-              timestamp: Date.parse(data.timeStamp),
-            },
-          ],
+          totalMessages: [newMessage],
           // TODO: Only if user is not online
           inbox: [data.messageId],
         });
@@ -81,6 +73,9 @@ const messagingSocket = (socket: Socket<any>) => {
           chatIo.sockets
             .to(connectedUsers[data.senderId])
             .emit('receive_chat_id', { chatId: chatCreated.id, receiverId: data.receiverId });
+
+        if (connectedUsers[data.receiverId])
+          chatIo.sockets.to(connectedUsers[data.receiverId]).emit('incoming_private_message', newMessage);
       }
     },
   );
