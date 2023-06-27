@@ -11,8 +11,11 @@ import httpStatus from 'http-status';
 import { Decoded, JobApplicationStatus, LegalInfo, PaymentStatus, TokenTypes } from '../types';
 import { UserDiscriminators, findTypeofUser } from '../utils/finder';
 import { RequestStatus, RequestType } from '../types/request';
-import { chapa } from './chapa';
 import { ProjectStatus } from '../types/project';
+import Chapa from 'chapa-node';
+import { chapaKey } from '../config/envVars';
+
+const chapa = new Chapa(chapaKey);
 
 /**
  * Authenticate user and get token
@@ -105,22 +108,60 @@ const getUserProfile = asyncHandler(async (req: Request, res: Response) => {
  * @access Private
  */
 const updateUserSelf = asyncHandler(async (req: Request, res: Response) => {
-  const TargetUser = findTypeofUser(req.user?.type as UserDiscriminators);
-  const user = await TargetUser.findById(req.user?._id);
-  if (user) {
-    user.firstName = req.body.firstName || user.firstName;
-    user.lastName = req.body.lastName || user.lastName;
-    user.email = req.body.email || user.email;
-    user.password = req.body.password || user.password;
-    await user.save();
-    res.send({
-      message: 'User updated successfully',
-      user,
-    });
-  } else {
-    res.status(httpStatus.NOT_FOUND);
+  const userId = req.user?._id;
+  const { firstName, lastName, email, password, skills, bio, occupation, imageUrl } = req.body as {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    password?: string;
+    skills?: string[];
+    bio?: string;
+    occupation?: string;
+    imageUrl?: string;
+  };
+
+  const user = await User.findById(userId);
+  if (!user) {
+    res.status(404);
     throw new Error('User not found');
   }
+
+  if (firstName) {
+    user.firstName = firstName;
+  }
+  if (lastName) {
+    user.lastName = lastName;
+  }
+  if (email) {
+    const exitUser = await User.findOne({ email });
+    if (exitUser && exitUser._id.toString() !== userId?.toString()) {
+      res.status(400);
+      throw new Error('User already exists with this email');
+    }
+    user.email = email;
+  }
+  if (password) {
+    user.password = password;
+  }
+  if (skills) {
+    user.skills = skills;
+  }
+  if (bio) {
+    user.bio = bio;
+  }
+  if (occupation) {
+    user.occupation = occupation;
+  }
+
+  if (imageUrl) {
+    user.imageUrl = imageUrl;
+  }
+
+  await user.save();
+  res.send({
+    message: 'User updated successfully',
+    user,
+  });
 });
 
 /**
@@ -366,7 +407,6 @@ const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
  */
 const submitRequest = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?._id;
-  console.log(userId, req.user?._id);
   const { legalInfo, type } = req.body as { legalInfo: LegalInfo; type: RequestType };
 
   const newRequest = await RequestModel.create({
@@ -376,11 +416,13 @@ const submitRequest = asyncHandler(async (req: Request, res: Response) => {
     type,
   });
 
-  if (!newRequest) throw new Error('Failed to submit the reques.');
-
-  res.status(httpStatus.CREATED).send({
-    message: 'Request created successfully',
-  });
+  if (newRequest) {
+    res.status(httpStatus.CREATED).send({
+      message: 'Request created successfully',
+    });
+    return;
+  }
+  throw new Error('Failed to submit the reques.');
 });
 
 /**
@@ -451,7 +493,7 @@ const deleteRequestByIdSelf = asyncHandler(async (req: Request, res: Response) =
 const updateRequest = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   const { action } = req.query as { action: RequestStatus.APPROVED | RequestStatus.REJECTED };
-  const request = await RequestModel.findById(id);
+  const request = await RequestModel.findById(id).populate('user');
   if (!request) res.status(httpStatus.NOT_FOUND).send({ message: 'Request not found' });
   else {
     if (request?.status !== RequestStatus.INREVIEW) {
@@ -466,11 +508,13 @@ const updateRequest = asyncHandler(async (req: Request, res: Response) => {
 
     if (action === RequestStatus.APPROVED) {
       user.isVerified = true;
-      user.legalInfo = {
-        ...user.legalInfo,
-        ...request.legalInfo,
-      };
-      if (user.baseModelName === 'Freelancer') {
+      if (request.legalInfo) {
+        user.legalInfo = {
+          ...user.legalInfo,
+          ...request.legalInfo,
+        };
+      }
+      if (user.baseModelName === 'Freelancer' && user.subAccountId === undefined && user.legalInfo.bank) {
         const subAccountId = await chapa.createSubAccount({
           split_type: 'percentage',
           split_value: 0.5, // todo update me later
@@ -492,6 +536,8 @@ const updateRequest = asyncHandler(async (req: Request, res: Response) => {
     }
 
     if (action === RequestStatus.REJECTED) {
+      request.status = action;
+      await request.save();
       res.send({
         message: 'Request reject.',
       });

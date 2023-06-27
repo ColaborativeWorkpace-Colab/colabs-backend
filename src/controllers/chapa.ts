@@ -8,7 +8,7 @@ import { transport } from '../config';
 import { appEmail } from '../config/envVars';
 import { paymentRecived } from '../utils/mailFormats';
 
-export const chapa = new Chapa(chapaKey);
+const chapa = new Chapa(chapaKey);
 
 /**
  * Initialize or start payment process
