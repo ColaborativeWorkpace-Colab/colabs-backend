@@ -103,22 +103,60 @@ const getUserProfile = asyncHandler(async (req: Request, res: Response) => {
  * @access Private
  */
 const updateUserSelf = asyncHandler(async (req: Request, res: Response) => {
-  const TargetUser = findTypeofUser(req.user?.type as UserDiscriminators);
-  const user = await TargetUser.findById(req.user?._id);
-  if (user) {
-    user.firstName = req.body.firstName || user.firstName;
-    user.lastName = req.body.lastName || user.lastName;
-    user.email = req.body.email || user.email;
-    user.password = req.body.password || user.password;
-    await user.save();
-    res.send({
-      message: 'User updated successfully',
-      user,
-    });
-  } else {
-    res.status(httpStatus.NOT_FOUND);
+  const userId = req.user?._id;
+  const { firstName, lastName, email, password, skills, bio, occupation, imageUrl } = req.body as {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    password?: string;
+    skills?: string[];
+    bio?: string;
+    occupation?: string;
+    imageUrl?: string;
+  };
+
+  const user = await User.findById(userId);
+  if (!user) {
+    res.status(404);
     throw new Error('User not found');
   }
+
+  if (firstName) {
+    user.firstName = firstName;
+  }
+  if (lastName) {
+    user.lastName = lastName;
+  }
+  if (email) {
+    const exitUser = await User.findOne({ email });
+    if (exitUser && exitUser._id.toString() !== userId?.toString()) {
+      res.status(400);
+      throw new Error('User already exists with this email');
+    }
+    user.email = email;
+  }
+  if (password) {
+    user.password = password;
+  }
+  if (skills) {
+    user.skills = skills;
+  }
+  if (bio) {
+    user.bio = bio;
+  }
+  if (occupation) {
+    user.occupation = occupation;
+  }
+
+  if (imageUrl) {
+    user.imageUrl = imageUrl;
+  }
+
+  await user.save();
+  res.send({
+    message: 'User updated successfully',
+    user,
+  });
 });
 
 /**

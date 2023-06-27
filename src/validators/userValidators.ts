@@ -12,7 +12,6 @@ const userValidators = {
     query('type').not().isEmpty().isIn(['Freelancer', 'Employer']).withMessage('User type is incorrect or missign'),
   ],
   updateUser: [
-    body('fistName').optional().isString().trim().withMessage('First name should be a string'),
     body('email').optional().isEmail().withMessage('Please include a valid email'),
     body('password').optional().isLength({ min: 6 }).withMessage('Password should be at least 6 characters long'),
   ],

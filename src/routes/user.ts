@@ -48,7 +48,7 @@ router.route('/forgot-password').post(userValidators.forgotPassword, parseValida
 router
   .route('/profile')
   .get(protect, getUserProfile)
-  .put(protect, userValidators.updateUser, parseValidationError, updateUserSelf);
+  .put(userValidators.updateUser, parseValidationError, protect, updateUserSelf);
 router.route('/request').post(requestValidations.submitRequest, parseValidationError, protect, submitRequest);
 router.route('/request/self').get(protect, getAllRequestSelf);
 router.route('/request/self/:id').get(protect, getRequestByIdSelf).delete(protect, deleteRequestByIdSelf);
