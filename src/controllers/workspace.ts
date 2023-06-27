@@ -207,6 +207,7 @@ const uploadProjectFiles = asyncHandler(async (req: Request, res: Response) => {
     commitMessage: string;
     workerId: string;
   };
+  console.log(req.files);
   const client = new Octokit({
     auth: process.env.GITHUB_PERSONAL_ACCESS_TOKEN,
   });
@@ -218,80 +219,84 @@ const uploadProjectFiles = asyncHandler(async (req: Request, res: Response) => {
   let fileIterator = 0;
 
   if (worker && project) {
-    if (worker.permissions.uploadFiles.projects.includes(projectId)) {
-      new Promise((resolve, reject) => {
-        files.forEach(async (f) => {
-          const file = JSON.parse(JSON.stringify(f));
-          const content = await fs.readFile(file.path, { encoding: 'base64' });
-          let fileSha = '';
+    // if (worker.permissions.uploadFiles.projects.includes(projectId)) {
+    new Promise((resolve, reject) => {
+      files.forEach(async (f) => {
+        const file = JSON.parse(JSON.stringify(f));
+        const content = await fs.readFile(file.path, { encoding: 'base64' });
+        let fileSha = '';
 
-          project.files.forEach((projectFile: any) => {
-            if (projectFile.fileName === file.originalname) {
-              fileSha = projectFile.sha;
+        project.files.forEach((projectFile: any) => {
+          if (projectFile.fileName === file.originalname) {
+            fileSha = projectFile.sha;
+            return;
+          }
+        });
+        console.log(file.originalname);
+        console.log(fileSha);
+        const uploadResponse = await client.request(
+          `PUT /repos/${process.env.GITHUB_ORGANIZATION}/${projectName}/contents/${file.originalname}`,
+          {
+            message: commitMessage,
+            committer: {
+              name: `${worker.firstName} ${worker.lastName}`,
+              email: worker.email,
+            },
+            sha: fileSha,
+            content,
+          },
+        );
+
+        if (uploadResponse) {
+          fileIterator++;
+          const fileReference = { fileName: uploadResponse.data.content.name, sha: uploadResponse.data.content.sha };
+          let fileExists = false;
+          let fileIndex = 0;
+
+          project.files.forEach((projectFile: any, index: any) => {
+            if (projectFile.fileName === fileReference.fileName) {
+              fileExists = true;
+              fileIndex = index;
               return;
             }
           });
 
-          const uploadResponse = await client.request(
-            `PUT /repos/${process.env.GITHUB_ORGANIZATION}/${projectName}/contents/${file.originalname}`,
-            {
-              message: commitMessage,
-              committer: {
-                name: `${worker.firstName} ${worker.lastName}`,
-                email: worker.email,
-              },
-              sha: fileSha,
-              content,
-            },
-          );
+          if (!fileExists) uploadedFiles.push(fileReference);
+          else project.files[fileIndex] = fileReference;
 
-          if (uploadResponse) {
-            fileIterator++;
-            const fileReference = { fileName: uploadResponse.data.content.name, sha: uploadResponse.data.content.sha };
-            let fileExists = false;
+          if (fileIterator === files.length) resolve(true);
+        } else reject('File Upload request failed');
+      });
 
-            project.files.forEach((projectFile: any) => {
-              if (projectFile.fileName === fileReference.fileName) {
-                fileExists = true;
-                return;
-              }
-            });
+      if (files.length === 0) reject('Files not uploaded');
+    })
+      .then(async () => {
+        const databaseFilesUpadted = await project.updateOne({ files: [...project.files, ...uploadedFiles] });
 
-            if (!fileExists) uploadedFiles.push(fileReference);
-
-            if (fileIterator === files.length) resolve(true);
-          } else reject('File Upload request failed');
-        });
-
-        if (files.length === 0) reject('Files not uploaded');
-      })
-        .then(async () => {
-          const databaseFilesUpadted = await project.updateOne({ files: [...project.files, ...uploadedFiles] });
-
-          if (databaseFilesUpadted) {
-            res.json({
-              message: `Files are uploaded successfully.`,
-            });
-            return;
-          } else {
-            res.status(500);
-            throw new Error('Failed to store file references in database');
-          }
-        })
-        .catch((error) => {
-          res.status(500).json({ error });
-          throw new Error(error);
-        })
-        .finally(() => {
-          files.forEach((f) => {
-            const file = JSON.parse(JSON.stringify(f));
-            fs.unlink(file.path);
+        if (databaseFilesUpadted) {
+          res.json({
+            message: `Files are uploaded successfully.`,
           });
+          return;
+        } else {
+          res.status(500);
+          throw new Error('Failed to store file references in database');
+        }
+      })
+      .catch((error) => {
+        res.status(500).json({ error });
+        throw new Error(error);
+      })
+      .finally(() => {
+        files.forEach((f) => {
+          const file = JSON.parse(JSON.stringify(f));
+          fs.unlink(file.path);
         });
-    } else {
-      res.status(401);
-      throw new Error('You do not have access to upload files to this project.');
-    }
+      });
+    // } else {
+    //  res.status(401);
+    //  throw new Error('You do not have access to upload files to this project.');
+    // }
   } else {
     res.status(404);
     throw new Error(worker ? 'Project not found' : 'User not found');
