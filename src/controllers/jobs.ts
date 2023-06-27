@@ -637,7 +637,7 @@ const applicationApprove = asyncHandler(async (req: Request, res: Response) => {
       jobApplication.status = JobApplicationStatus.Accepted;
       await jobApplication.save();
       // send email to job owner
-      const link = `${frontendURL}/freelancer/jobs/${jobApplication.jobId}`;
+      const link = `${frontendURL}/jobs/${jobApplication.jobId}`;
       await transport.sendMail({
         to: worker?.email,
         from: appEmail,
