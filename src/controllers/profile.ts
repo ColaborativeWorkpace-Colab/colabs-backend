@@ -3,6 +3,7 @@ import asyncHandler from 'express-async-handler';
 import { User, SVT, SVTSolution, Notification, Freelancer } from '../models';
 import { IUser } from 'src/types';
 import { Types } from 'mongoose';
+import { NOT_FOUND, INTERNAL_SERVER_ERROR, UNAUTHORIZED } from 'http-status';
 
 /**
  * Get Profile
@@ -18,7 +19,7 @@ const getProfile = asyncHandler(async (req: Request, res: Response) => {
       profile: user,
     });
   } else {
-    res.status(404);
+    res.status(NOT_FOUND);
     throw new Error('User not found');
   }
 });
@@ -59,12 +60,12 @@ const editProfile = asyncHandler(async (req: Request, res: Response) => {
   const user = await User.findById(userId);
 
   let errorMessage = 'User not found';
-  let statusCode = 404;
+  let statusCode: number = NOT_FOUND;
 
   if (user) {
     const userUpdated = await user.updateOne(JSON.parse(JSON.stringify(data)));
     errorMessage = 'Failed to update profile';
-    statusCode = 500;
+    statusCode = INTERNAL_SERVER_ERROR;
 
     if (userUpdated) {
       res.json({
@@ -93,7 +94,7 @@ const getSVTs = asyncHandler(async (req: Request, res: Response) => {
       svts,
     });
   } else {
-    res.status(404);
+    res.status(NOT_FOUND);
     throw new Error('SVTs not found');
   }
 });
@@ -118,7 +119,7 @@ const submitSolution = asyncHandler(async (req: Request, res: Response) => {
       message: 'You have submitted your answer.',
     });
   } else {
-    res.status(404);
+    res.status(NOT_FOUND);
     throw new Error('SVTs not found');
   }
 });
@@ -141,11 +142,11 @@ const addSVT = asyncHandler(async (req: Request, res: Response) => {
   };
   const regulator = await User.findById(regulatorId);
   let errorMessage = 'User not found';
-  let statusCode = 404;
+  let statusCode: number = NOT_FOUND;
 
   if (regulator) {
     errorMessage = 'You do not have access to this service.';
-    statusCode = 401;
+    statusCode = UNAUTHORIZED;
 
     if (regulator.isRegulator) {
       const svt = await SVT.create({
@@ -159,7 +160,7 @@ const addSVT = asyncHandler(async (req: Request, res: Response) => {
 
       if (svt) {
         errorMessage = 'Failed to create SVT';
-        statusCode = 500;
+        statusCode = INTERNAL_SERVER_ERROR;
 
         res.json({
           message: 'SVT added to database.',
@@ -184,15 +185,15 @@ const getPendingSolutions = asyncHandler(async (req: Request, res: Response) => 
   const { recruiterId: regulatorId } = req.params as { recruiterId: string };
   const regulator = await User.findById(regulatorId);
   let errorMessage = 'User not found';
-  let statusCode = 404;
+  let statusCode: number = NOT_FOUND;
 
   if (regulator) {
     errorMessage = 'You do not have access to this service.';
-    statusCode = 401;
+    statusCode = UNAUTHORIZED;
 
     if (regulator.isRegulator) {
       errorMessage = 'Failed to retrieve solutions';
-      statusCode = 500;
+      statusCode = INTERNAL_SERVER_ERROR;
 
       const solutions = await SVTSolution.find({ status: 'Pending' });
 
@@ -222,25 +223,25 @@ const scoreSolution = asyncHandler(async (req: Request, res: Response) => {
   const regulator = await User.findById(regulatorId);
 
   let errorMessage = 'User not found';
-  let statusCode = 404;
+  let statusCode: number = NOT_FOUND;
 
   if (regulator) {
     errorMessage = 'You do not have access to this service.';
-    statusCode = 401;
+    statusCode = UNAUTHORIZED;
 
     if (regulator.isRegulator) {
       errorMessage = 'Failed to score solution';
-      statusCode = 500;
+      statusCode = INTERNAL_SERVER_ERROR;
       const solution = await SVTSolution.findByIdAndUpdate(solutionId, { score });
 
       if (solution) {
         const worker = await Freelancer.findById(solution.userId);
         errorMessage = 'Worker not found';
-        statusCode = 404;
+        statusCode = NOT_FOUND;
 
         if (worker) {
           errorMessage = 'Notification request failed';
-          statusCode = 500;
+          statusCode = INTERNAL_SERVER_ERROR;
 
           await Freelancer.updateOne({ skills: [...worker.skills, solution.skillId] });
           const svt = await SVT.findById(solution.skillId);
@@ -301,7 +302,7 @@ const getProfiles = asyncHandler(async (req: Request, res: Response) => {
       users,
     });
   } else {
-    res.status(404);
+    res.status(NOT_FOUND);
     throw new Error('SVTs not found');
   }
 });

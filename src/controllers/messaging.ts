@@ -4,6 +4,7 @@ import { Socket } from 'socket.io';
 import { Chat, User } from '../models';
 import { ChatType } from '../types';
 import { chatIo } from '..';
+import { NOT_FOUND } from 'http-status';
 
 const connectedUsers: { [userId: string]: string } = {};
 
@@ -166,7 +167,7 @@ const getMessages = asyncHandler(async (req: Request, res: Response) => {
       connectedUsers,
     });
   } else {
-    res.status(404);
+    res.status(NOT_FOUND);
     throw new Error('Messages not found');
   }
 });

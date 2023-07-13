@@ -7,7 +7,7 @@ import { appEmail, backendURL, frontendURL, jwtSecret, transport } from '../conf
 import { forgotPasswordFormat, verifyEmailFormat } from '../utils/mailFormats';
 import Token from '../models/Token';
 import jwt, { Secret } from 'jsonwebtoken';
-import httpStatus from 'http-status';
+import httpStatus, { BAD_REQUEST, NOT_FOUND } from 'http-status';
 import { Decoded, JobApplicationStatus, LegalInfo, PaymentStatus, TokenTypes } from '../types';
 import { UserDiscriminators, findTypeofUser } from '../utils/finder';
 import { RequestStatus, RequestType } from '../types/request';
@@ -45,7 +45,7 @@ const registerUser = asyncHandler(async (req: Request, res: Response) => {
   const userExists = await User.findOne({ email });
 
   if (userExists) {
-    res.status(400);
+    res.status(BAD_REQUEST);
     throw new Error('User already exists with this email');
   }
   const user = new TargetUser({
@@ -78,7 +78,7 @@ const registerUser = asyncHandler(async (req: Request, res: Response) => {
       });
     }
   } else {
-    res.status(400);
+    res.status(BAD_REQUEST);
     throw new Error('Invalid user data');
   }
 });
@@ -97,7 +97,7 @@ const getUserProfile = asyncHandler(async (req: Request, res: Response) => {
       user,
     });
   } else {
-    res.status(404);
+    res.status(NOT_FOUND);
     throw new Error('User not found');
   }
 });
@@ -122,7 +122,7 @@ const updateUserSelf = asyncHandler(async (req: Request, res: Response) => {
 
   const user = await User.findById(userId);
   if (!user) {
-    res.status(404);
+    res.status(NOT_FOUND);
     throw new Error('User not found');
   }
 
@@ -135,7 +135,7 @@ const updateUserSelf = asyncHandler(async (req: Request, res: Response) => {
   if (email) {
     const exitUser = await User.findOne({ email });
     if (exitUser && exitUser._id.toString() !== userId?.toString()) {
-      res.status(400);
+      res.status(BAD_REQUEST);
       throw new Error('User already exists with this email');
     }
     user.email = email;
@@ -192,7 +192,7 @@ const deleteUser = asyncHandler(async (req: Request, res: Response) => {
     await user.remove();
     res.json({ message: 'User removed' });
   } else {
-    res.status(404);
+    res.status(NOT_FOUND);
     throw new Error('User not found');
   }
 });
@@ -210,7 +210,7 @@ const getUserById = asyncHandler(async (req: Request, res: Response) => {
   if (user) {
     res.json({ user: user.cleanUser() });
   } else {
-    res.status(404);
+    res.status(NOT_FOUND);
     throw new Error('User not found');
   }
 });
@@ -236,7 +236,7 @@ const updateUserOther = asyncHandler(async (req: Request, res: Response) => {
       user: user.cleanUser(),
     });
   } else {
-    res.status(404);
+    res.status(NOT_FOUND);
     throw new Error('User not found');
   }
 });

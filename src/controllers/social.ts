@@ -2,6 +2,7 @@ import { Request, Response } from '../types/express';
 import asyncHandler from 'express-async-handler';
 import { User, Post } from '../models';
 import { Types } from 'mongoose';
+import { NOT_FOUND, INTERNAL_SERVER_ERROR, NO_CONTENT } from 'http-status';
 
 /**
  * Get Posts
@@ -114,10 +115,10 @@ const postContent = asyncHandler(async (req: Request, res: Response) => {
   };
 
   let errorMessage = 'User not found';
-  let statusCode = 404;
+  let statusCode: number = NOT_FOUND;
 
   errorMessage = 'Failed posting content';
-  statusCode = 500;
+  statusCode = INTERNAL_SERVER_ERROR;
 
   const post = await Post.create({
     textContent,
@@ -153,11 +154,11 @@ const likePost = asyncHandler(async (req: Request, res: Response) => {
   const post = await Post.findById(postId);
 
   let errorMessage = 'Post not found';
-  let statusCode = 404;
+  let statusCode: number = NOT_FOUND;
 
   if (post) {
     errorMessage = 'Failed to like post';
-    statusCode = 500;
+    statusCode = INTERNAL_SERVER_ERROR;
 
     if (!post.likes.includes(userId)) {
       post.likes = [...post.likes, userId];
@@ -189,11 +190,11 @@ const commentPost = asyncHandler(async (req: Request, res: Response) => {
   const post = await Post.findById(postId);
 
   let errorMessage = 'Post not found';
-  let statusCode = 404;
+  let statusCode: number = NOT_FOUND;
 
   if (post) {
     errorMessage = 'Failed to comment on post';
-    statusCode = 500;
+    statusCode = INTERNAL_SERVER_ERROR;
 
     const commentPosted = await post.updateOne({ comments: [...post.comments, { userId, comment }] });
 
@@ -221,11 +222,11 @@ const editPost = asyncHandler(async (req: Request, res: Response) => {
   const post = await Post.findById(postId);
 
   let errorMessage = 'Post not found';
-  let statusCode = 404;
+  let statusCode: number = NOT_FOUND;
 
   if (post) {
     errorMessage = 'Failed to edit post';
-    statusCode = 500;
+    statusCode = INTERNAL_SERVER_ERROR;
 
     const postEdited = await post.updateOne({
       textContent,
@@ -256,7 +257,7 @@ const getUserSocialConnections = asyncHandler(async (req: Request, res: Response
   const user = await User.findById(userId);
 
   const errorMessage = 'User not found';
-  const statusCode = 404;
+  const statusCode = NOT_FOUND;
 
   if (user) {
     res.json({
@@ -282,11 +283,11 @@ const addUserSocialConnections = asyncHandler(async (req: Request, res: Response
   const otherUser = await User.findById(otherUserId);
 
   let errorMessage = 'User not found';
-  let statusCode = 404;
+  let statusCode: number = NOT_FOUND;
 
   if (user && otherUser) {
     errorMessage = "Failed to add connection to the user's database entry";
-    statusCode = 500;
+    statusCode = INTERNAL_SERVER_ERROR;
     if (user.connections.includes(otherUser._id)) {
       res.json({
         message: 'User already in your connections list',
@@ -319,11 +320,11 @@ const removeUserSocialConnections = asyncHandler(async (req: Request, res: Respo
   const otherUser = await User.findById(otherUserId);
 
   let errorMessage = 'User not found';
-  let statusCode = 404;
+  let statusCode: number = NOT_FOUND;
 
   if (user && otherUser) {
     errorMessage = "Failed to remove connection from the user's database entry";
-    statusCode = 500;
+    statusCode = INTERNAL_SERVER_ERROR;
     if (!user.connections.includes(otherUser._id)) {
       user.connections = user.connections.filter((connection) => connection !== otherUser._id);
       await user.save();
@@ -347,7 +348,7 @@ const removeUserSocialConnections = asyncHandler(async (req: Request, res: Respo
 const getPostData = asyncHandler(async (req: Request, res: Response) => {
   const { postTag } = req.params as { postTag?: string };
   let posts;
-  const statusCode = postTag !== null ? 404 : 204;
+  const statusCode: number = postTag !== null ? NOT_FOUND : NO_CONTENT;
   const errorMessage = postTag !== null ? 'Tag not found' : 'No Content Available';
 
   if (postTag !== null) {

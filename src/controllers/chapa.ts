@@ -7,6 +7,7 @@ import crypto from 'crypto';
 import { transport } from '../config';
 import { appEmail } from '../config/envVars';
 import { paymentRecived } from '../utils/mailFormats';
+import { UNAUTHORIZED, NOT_FOUND, OK, INTERNAL_SERVER_ERROR, BAD_REQUEST } from 'http-status';
 
 const chapa = new Chapa(chapaKey);
 
@@ -24,7 +25,7 @@ const initializePayment = asyncHandler(async (req: Request, res: Response) => {
   const freelancer = await User.findById(freelancerId);
 
   if (user?._id?.toString() !== project?.owner.toString()) {
-    res.status(401);
+    res.status(UNAUTHORIZED);
     throw new Error('Unauthorized');
   }
 
@@ -64,12 +65,12 @@ const initializePayment = asyncHandler(async (req: Request, res: Response) => {
   }
 
   if (!project) {
-    res.status(404);
+    res.status(NOT_FOUND);
     throw new Error('Project not found');
   }
 
   if (!employer) {
-    res.status(404);
+    res.status(NOT_FOUND);
     throw new Error('Project owner not found');
   }
 });
@@ -84,18 +85,18 @@ const update = asyncHandler(async (req: Request, res: Response) => {
   const payment = await Payment.findOne({ txRef: tnxRef });
   const project = await Project.findById(payment?.projectId);
   if (!payment) {
-    res.status(404);
+    res.status(NOT_FOUND);
 
     throw new Error('Payment Information not found with this transaction reference');
   }
   if (!project) {
-    res.status(404);
+    res.status(NOT_FOUND);
     throw new Error('Project not found');
   }
 
   const freelancer = await User.findById(payment?.freelancerId);
   if (!freelancer) {
-    res.status(404);
+    res.status(NOT_FOUND);
     throw new Error('Freelancer not found');
   }
 
@@ -119,7 +120,7 @@ const update = asyncHandler(async (req: Request, res: Response) => {
     html: paymentRecived(freelancer.firstName, link),
   });
 
-  res.sendStatus(200);
+  res.sendStatus(OK);
   return;
 });
 
@@ -137,18 +138,18 @@ const webHook = asyncHandler(async (req: Request, res: Response) => {
     const payment = await Payment.findOne({ txRef: tx_ref });
     const project = await Project.findById(payment?.projectId);
     if (!payment) {
-      res.status(404);
+      res.status(NOT_FOUND);
 
       throw new Error('Payment Information not found with this transaction reference');
     }
     if (!project) {
-      res.status(404);
+      res.status(NOT_FOUND);
       throw new Error('Project not found');
     }
 
     const freelancer = await User.findById(payment?.freelancerId);
     if (!freelancer) {
-      res.status(404);
+      res.status(NOT_FOUND);
       throw new Error('Freelancer not found');
     }
 
@@ -163,11 +164,11 @@ const webHook = asyncHandler(async (req: Request, res: Response) => {
     await project.save();
     await payment.save();
 
-    res.sendStatus(200);
+    res.sendStatus(OK);
     return;
   }
 
-  res.status(500);
+  res.status(INTERNAL_SERVER_ERROR);
   throw new Error('Bad Request');
 });
 
@@ -192,7 +193,7 @@ const verify = asyncHandler(async (req: Request, res: Response) => {
     return;
   }
 
-  res.status(400);
+  res.status(BAD_REQUEST);
   throw new Error('No payment with this tnxRef found.');
 });
 

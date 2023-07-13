@@ -5,6 +5,7 @@ import { Octokit } from 'octokit';
 import * as fs from 'fs/promises';
 import { updatePermissions } from '../utils/updatePermissions';
 import { TaskStatus } from 'src/types';
+import { CREATED, FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_FOUND, NO_CONTENT, UNAUTHORIZED } from 'http-status';
 
 /**
  * Get Projects
@@ -20,7 +21,7 @@ const getProjects = asyncHandler(async (req: Request, res: Response) => {
       projects: repositories,
     });
   } else {
-    res.status(404);
+    res.status(NOT_FOUND);
     throw new Error('User not found');
   }
 });
@@ -51,7 +52,7 @@ const getProjectFiles = asyncHandler(async (req: Request, res: Response) => {
       trees,
     });
   } else {
-    res.status(404);
+    res.status(NOT_FOUND);
     throw new Error('Project not found');
   }
 });
@@ -77,7 +78,7 @@ const getTrees = asyncHandler(async (req: Request, res: Response) => {
       trees,
     });
   } else {
-    res.status(404);
+    res.status(NOT_FOUND);
     throw new Error('Project not found');
   }
 });
@@ -103,7 +104,7 @@ const getFileVersions = asyncHandler(async (req: Request, res: Response) => {
       files,
     });
   } else {
-    res.status(404);
+    res.status(NOT_FOUND);
     throw new Error('Project not found');
   }
 });
@@ -130,7 +131,7 @@ const createProject = asyncHandler(async (req: Request, res: Response) => {
       private: true,
     });
 
-    if (repoResponse.status === 201) {
+    if (repoResponse.status === CREATED) {
       const repository = await Repository.create({ name: projectValidName, owner: userId });
 
       if (repository) {
@@ -149,7 +150,7 @@ const createProject = asyncHandler(async (req: Request, res: Response) => {
       }
     }
   }
-  res.status(404);
+  res.status(NOT_FOUND);
   throw new Error(errorMessage);
 });
 
@@ -167,17 +168,17 @@ const deleteProject = asyncHandler(async (req: Request, res: Response) => {
   const worker = await Freelancer.findById(workerId);
 
   let errorMessage = 'User not found';
-  let errorStatusCode = 404;
+  let errorStatusCode: number = NOT_FOUND;
 
   if (worker) {
     errorMessage = 'You do not have access to delete this project.';
-    errorStatusCode = 401;
+    errorStatusCode = UNAUTHORIZED;
 
     if (worker.permissions.deleteProject.projects.includes(projectId)) {
       const repoResponse = await client.request(`DELETE /repos/${process.env.GITHUB_ORGANIZATION}/${projectName}`);
       errorMessage = 'Failed Request';
 
-      if (repoResponse.status === 204) {
+      if (repoResponse.status === NO_CONTENT) {
         const project = await Repository.findByIdAndDelete(projectId);
         errorMessage = 'Project not found';
 
@@ -279,12 +280,12 @@ const uploadProjectFiles = asyncHandler(async (req: Request, res: Response) => {
           });
           return;
         } else {
-          res.status(500);
+          res.status(INTERNAL_SERVER_ERROR);
           throw new Error('Failed to store file references in database');
         }
       })
       .catch((error) => {
-        res.status(500).json({ error });
+        res.status(INTERNAL_SERVER_ERROR).json({ error });
         throw new Error(error);
       })
       .finally(() => {
@@ -294,11 +295,11 @@ const uploadProjectFiles = asyncHandler(async (req: Request, res: Response) => {
         });
       });
     // } else {
-    //  res.status(401);
+    //  res.status(UNAUTHORIZED);
     //  throw new Error('You do not have access to upload files to this project.');
     // }
   } else {
-    res.status(404);
+    res.status(NOT_FOUND);
     throw new Error(worker ? 'Project not found' : 'User not found');
   }
 });
@@ -369,20 +370,20 @@ const deleteProjectFiles = asyncHandler(async (req: Request, res: Response) => {
             });
             return;
           } else {
-            res.status(500);
+            res.status(INTERNAL_SERVER_ERROR);
             throw new Error('Failed to delete file references in database');
           }
         })
         .catch((error) => {
-          res.status(500);
+          res.status(INTERNAL_SERVER_ERROR);
           throw new Error(error);
         });
     } else {
-      res.status(401);
+      res.status(UNAUTHORIZED);
       throw new Error('You do not have access to delete files to this project.');
     }
   } else {
-    res.status(404);
+    res.status(NOT_FOUND);
     throw new Error(worker ? 'Project not found' : 'User not found');
   }
 });
@@ -399,16 +400,16 @@ const givePermissions = asyncHandler(async (req: Request, res: Response) => {
   const member = await Freelancer.findById(memberId);
 
   let errorMessage = 'Users not found';
-  let statusCode = 404;
+  let statusCode: number = NOT_FOUND;
 
   if (owner && member) {
     errorMessage = 'You do not have access to delete files to this project.';
-    statusCode = 401;
+    statusCode = UNAUTHORIZED;
 
     if (owner.permissions.adminAccess.projects.includes(projectId)) {
       const memberPermissions = member.permissions;
       errorMessage = `Failed assigning permissions to ${member.firstName} ${member.lastName}`;
-      statusCode = 500;
+      statusCode = INTERNAL_SERVER_ERROR;
 
       updatePermissions(permission, projectId, memberPermissions);
 
@@ -439,11 +440,11 @@ const addTasks = asyncHandler(async (req: Request, res: Response) => {
   const project = await Repository.findById(projectId);
 
   let errorMessage = 'Project not found';
-  let statusCode = 404;
+  let statusCode: number = NOT_FOUND;
 
   if (project) {
     errorMessage = 'Failed to update project';
-    statusCode = 500;
+    statusCode = INTERNAL_SERVER_ERROR;
 
     const newTaskJSON = JSON.parse(JSON.stringify(newTask));
     const taskName = (newTaskJSON.title as string).replace(' ', '_');
@@ -475,11 +476,11 @@ const editTasks = asyncHandler(async (req: Request, res: Response) => {
   const project = await Repository.findById(projectId);
 
   let errorMessage = 'Project not found';
-  let statusCode = 404;
+  let statusCode: number = NOT_FOUND;
 
   if (project) {
     errorMessage = 'Failed to update project task';
-    statusCode = 500;
+    statusCode = INTERNAL_SERVER_ERROR;
 
     const editedTaskJSON = JSON.parse(JSON.stringify(editedTask));
     const editedTasks = project.tasks.map((task) => {
@@ -514,11 +515,11 @@ const deleteTasks = asyncHandler(async (req: Request, res: Response) => {
   const project = await Repository.findById(projectId);
 
   let errorMessage = 'Project not found';
-  let statusCode = 404;
+  let statusCode: number = NOT_FOUND;
 
   if (project) {
     errorMessage = 'Task not found';
-    statusCode = 404;
+    statusCode = NOT_FOUND;
 
     let taskExists = false;
 
@@ -528,7 +529,7 @@ const deleteTasks = asyncHandler(async (req: Request, res: Response) => {
 
     if (taskExists) {
       errorMessage = 'Failed to remove project task';
-      statusCode = 500;
+      statusCode = INTERNAL_SERVER_ERROR;
 
       const updatedTasks = project.tasks.filter((task) => task.id !== taskId);
       const tasksUpdated = await project.updateOne({ tasks: updatedTasks });
@@ -558,11 +559,11 @@ const updateTaskStatus = asyncHandler(async (req: Request, res: Response) => {
   const project = await Repository.findById(projectId);
 
   let errorMessage = 'Project not found';
-  let statusCode = 404;
+  let statusCode: number = NOT_FOUND;
 
   if (project) {
     errorMessage = 'Failed to update project';
-    statusCode = 500;
+    statusCode = INTERNAL_SERVER_ERROR;
 
     const updatedTasks = project.tasks.map((task) => {
       if (task.id === taskId) {
@@ -596,11 +597,11 @@ const assignTask = asyncHandler(async (req: Request, res: Response) => {
   const project = await Repository.findById(projectId);
 
   let errorMessage = 'Project not found';
-  let statusCode = 404;
+  let statusCode: number = NOT_FOUND;
 
   if (project) {
     errorMessage = 'Failed to assign task to users';
-    statusCode = 500;
+    statusCode = INTERNAL_SERVER_ERROR;
 
     const assigneesIds = assignees.split(',');
     const updatedAssignees = project.tasks.map((task) => {
@@ -644,7 +645,7 @@ const addProjectMembers = asyncHandler(async (req: Request, res: Response) => {
   const { workerIds } = req.body as { workerIds: string };
   const workers = workerIds.split(',');
   let errorMessage = 'Project not found';
-  let statusCode = 404;
+  let statusCode: number = NOT_FOUND;
   let workerIterator = 0;
   const unverifiedWorkers: string[] = [];
 
@@ -662,7 +663,7 @@ const addProjectMembers = asyncHandler(async (req: Request, res: Response) => {
 
       if (project) {
         errorMessage = 'Failed to add members to project';
-        statusCode = 500;
+        statusCode = INTERNAL_SERVER_ERROR;
 
         const membersAdded = await project.updateOne({ $push: { members: [...workers] } });
 
@@ -675,7 +676,7 @@ const addProjectMembers = asyncHandler(async (req: Request, res: Response) => {
         }
       }
     } else {
-      res.status(403);
+      res.status(FORBIDDEN);
       res.json({
         message: 'There are users that are not verified for work yet. Make sure they are verified and try again.',
         unverifiedWorkers,

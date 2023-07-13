@@ -7,6 +7,7 @@ import { JobApplicationStatus, JobStatus } from '../types';
 import { appEmail, frontendURL, transport } from '../config';
 import { acceptJobApplicationFormat, rejectJobApplicationFormat } from '../utils/mailFormats';
 import { Types } from 'mongoose';
+import { FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_FOUND } from 'http-status';
 
 // NOTE: When manipulating a job info, only the owner has accessPending, Completed, Active, Ready, Available
 /**
@@ -139,7 +140,7 @@ const getJobDetail = asyncHandler(async (_req: Request, res: Response) => {
       applications,
     });
   } else {
-    res.status(404);
+    res.status(NOT_FOUND);
     throw new Error('Job not found');
   }
 });
@@ -162,7 +163,7 @@ const postJob = asyncHandler(async (req: Request, res: Response) => {
   const employer = await Employer.findById(recruiterId);
   let errorMessage = 'User not found or not an employer';
   if (employer) {
-    // errorMessage =
+    // errorMessage +=
     //   'Your account does not yet have access to this feature. Complete your profile verification to proceed.';
 
     // if (employer.isVerified) {
@@ -184,7 +185,7 @@ const postJob = asyncHandler(async (req: Request, res: Response) => {
     // }
   }
 
-  res.status(404);
+  res.status(NOT_FOUND);
   throw new Error(errorMessage);
 });
 
@@ -208,7 +209,7 @@ const deleteJob = asyncHandler(async (req: Request, res: Response) => {
       return;
     }
   }
-  res.status(404);
+  res.status(NOT_FOUND);
   throw new Error(errorMessage);
 });
 
@@ -245,7 +246,7 @@ const completeJob = asyncHandler(async (req: Request, res: Response) => {
       return;
     }
   } else {
-    res.status(404);
+    res.status(NOT_FOUND);
     throw new Error(errorMessage);
   }
 });
@@ -265,7 +266,7 @@ const applyJob = asyncHandler(async (req: Request, res: Response) => {
   const worker = await User.findById(workerId);
   let errorMessage = worker ? 'User is not verified for jobs' : 'User not found';
   if (!job) errorMessage = 'Job not found.';
-  let statusCode = worker ? 403 : 404;
+  let statusCode: number = worker ? FORBIDDEN : NOT_FOUND;
 
   const alreadyApplied = await JobApplication.findOne({
     jobId: job?._id,
@@ -284,7 +285,7 @@ const applyJob = asyncHandler(async (req: Request, res: Response) => {
     });
 
     errorMessage = 'Failed to submit job proposal';
-    statusCode = 500;
+    statusCode = INTERNAL_SERVER_ERROR;
 
     if (jobApplication) {
       const job = await Job.findByIdAndUpdate(jobId, { status: 'Pending', $push: { pendingworkers: workerId } });
@@ -350,7 +351,7 @@ const addTeamMembers = asyncHandler(async (req: Request, res: Response) => {
     }
   }
 
-  res.status(404);
+  res.status(NOT_FOUND);
   throw new Error(errorMessage);
 });
 
@@ -381,7 +382,7 @@ const jobReady = asyncHandler(async (req: Request, res: Response) => {
       });
     }
   } else {
-    res.status(404);
+    res.status(NOT_FOUND);
     throw new Error(errorMessage);
   }
 });
@@ -418,7 +419,7 @@ const downloadJobResultPackage = asyncHandler(async (req: Request, res: Response
     res.set('Content-Length', data.length);
     res.send(data);
   } else {
-    res.status(404);
+    res.status(NOT_FOUND);
     throw new Error('File Package not found');
   }
 });
@@ -677,7 +678,7 @@ const applicationApprove = asyncHandler(async (req: Request, res: Response) => {
       }
     }
   } else {
-    res.status(404);
+    res.status(NOT_FOUND);
     throw new Error(errorMessage);
   }
 });
